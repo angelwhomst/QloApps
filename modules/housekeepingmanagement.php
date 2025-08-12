@@ -5,13 +5,12 @@ if (!defined('_PS_VERSION_')) {
 
 class HousekeepingManagement extends Module
 {
-    // Module constructor
     public function __construct()
     {
         $this->name = 'housekeepingmanagement';
         $this->tab = 'administration';
         $this->version = '1.0.0';
-        $this->author = 'Elisha Mier';
+        $this->author = 'YourName';
         $this->bootstrap = true;
 
         parent::__construct();
@@ -20,18 +19,17 @@ class HousekeepingManagement extends Module
         $this->description = $this->l('Manage housekeeping tasks in your hotel.');
     }
 
-    // Module installation method
     public function install()
     {
         if (!parent::install()) {
             return false;
         }
 
-        
+        // Add admin tab/menu entry
         $tab = new Tab();
-        $tab->class_name = 'AdminHousekeepingManagement'; 
+        $tab->class_name = 'AdminHousekeepingManagement'; // controller class name
         $tab->module = $this->name;
-        $tab->id_parent = Tab::getIdFromClassName('AdminCatalog'); 
+        $tab->id_parent = Tab::getIdFromClassName('AdminCatalog'); // or 0 for root menu
         foreach (Language::getLanguages() as $lang) {
             $tab->name[$lang['id_lang']] = $this->l('Housekeeping');
         }
@@ -40,11 +38,10 @@ class HousekeepingManagement extends Module
         return true;
     }
 
-    // Module uninstall method
     public function uninstall()
     {
-        
-        $id_tab = Tab::getIdFromClassName('AdminHousekeepingManagement'); 
+        // Remove tab on uninstall
+        $id_tab = Tab::getIdFromClassName('AdminHousekeepingManagement');
         if ($id_tab) {
             $tab = new Tab($id_tab);
             $tab->delete();
@@ -52,5 +49,4 @@ class HousekeepingManagement extends Module
 
         return parent::uninstall();
     }
-
 }
