@@ -25,7 +25,7 @@ class AdminHousekeepingController extends ModuleAdminController
         // Add module JS & CSS
         $modulePath = $this->module->getPathUri();
         $this->context->controller->addJS($modulePath . 'views/js/housekeeping.js');
-        $this->context->controller->addCSS($modulePath . 'views/css/housekeeping.css');
+        $this->context->controller->addCSS($modulePath . 'views/css/dashboard.css');
 
         // Display template
         $this->setTemplate('module:housekeepingmanagement/views/templates/admin/housekeeping.tpl');

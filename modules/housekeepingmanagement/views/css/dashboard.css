@@ -1,0 +1,135 @@
+/* Dashboard Enhancements - Smooth and Clean UI */
+
+.housekeeping-dashboard .card {
+  border-radius: 10px;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  padding: 25px;
+  margin-bottom: 30px;
+  background-color: #fff;
+}
+
+.housekeeping-dashboard .card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 25px rgba(0,0,0,0.15);
+}
+
+.housekeeping-dashboard .card .card-title {
+  font-weight: 700;
+  font-size: 1.2rem;
+  margin-bottom: 12px;
+  color: #2c3e50;
+  text-align: center;
+  letter-spacing: 0.03em;
+}
+
+.housekeeping-dashboard .card h2 {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #3498db;
+  text-align: center;
+  margin: 0;
+  letter-spacing: 0.05em;
+}
+
+.housekeeping-dashboard .card.bg-primary {
+  background-color: #3498db !important;
+  color: #fff !important;
+}
+
+.housekeeping-dashboard .card.bg-success {
+  background-color: #2ecc71 !important;
+  color: #fff !important;
+}
+
+.housekeeping-dashboard .card.bg-warning {
+  background-color: #f39c12 !important;
+  color: #fff !important;
+}
+
+.housekeeping-dashboard .card.bg-danger {
+  background-color: #e74c3c !important;
+  color: #fff !important;
+}
+
+.housekeeping-dashboard .card-header {
+  background-color: #ecf0f1;
+  border-bottom: 3px solid #3498db;
+  font-weight: 700;
+  font-size: 1.4rem;
+  color: #2c3e50;
+  padding: 18px 25px;
+  border-radius: 10px 10px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.housekeeping-dashboard .card-header .btn {
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 8px;
+  transition: background-color 0.3s ease;
+}
+
+.housekeeping-dashboard .card-header .btn:hover {
+  background-color: #2980b9;
+  color: #fff;
+}
+
+.housekeeping-dashboard .nav-tabs .nav-link {
+  font-weight: 700;
+  color: #3498db;
+  border: none;
+  border-bottom: 4px solid transparent;
+  transition: border-color 0.3s ease;
+  padding: 14px 22px;
+  font-size: 1.1rem;
+  border-radius: 0;
+}
+
+.housekeeping-dashboard .nav-tabs .nav-link.active,
+.housekeeping-dashboard .nav-tabs .nav-link:hover {
+  border-bottom: 4px solid #2980b9;
+  color: #1c5980;
+  background-color: transparent;
+}
+
+.housekeeping-dashboard #room-table-container,
+.housekeeping-dashboard #sop-table-container,
+.housekeeping-dashboard #sop-form-container {
+  padding-top: 20px;
+}
+
+.housekeeping-dashboard button#btn-add-sop,
+.housekeeping-dashboard button#btn-reset-data {
+  font-weight: 700;
+  padding: 8px 20px;
+  border-radius: 8px;
+  transition: background-color 0.3s ease;
+  cursor: pointer;
+}
+
+.housekeeping-dashboard button#btn-add-sop:hover {
+  background-color: #2980b9;
+  color: #fff;
+}
+
+.housekeeping-dashboard button#btn-reset-data:hover {
+  background-color: #bdc3c7;
+  color: #2c3e50;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+  .housekeeping-dashboard .card h2 {
+    font-size: 2.4rem;
+  }
+  .housekeeping-dashboard .card .card-title {
+    font-size: 1.1rem;
+  }
+  .housekeeping-dashboard .nav-tabs .nav-link {
+    font-size: 1rem;
+    padding: 12px 15px;
+  }
+}
