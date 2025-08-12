@@ -11,7 +11,7 @@ class HousekeepingManagement extends Module
         $this->name = 'housekeepingmanagement';
         $this->tab = 'administration';
         $this->version = '1.0.0';
-        $this->author = 'Elisha Mier';
+        $this->author = 'Group 5';
         $this->bootstrap = true;
 
         parent::__construct();
