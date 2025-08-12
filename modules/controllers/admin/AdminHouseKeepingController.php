@@ -17,7 +17,7 @@ class AdminHousekeepingController extends ModuleAdminController
         parent::initContent();
 
         // Pass any initial data or admin ajax URL
-        $ajaxUrl = $this->context->link->getAdminLink('AdminHousekeeping'); 
+        $ajaxUrl = $this->context->link->getAdminLink('AdminHousekeeping'); // admin link to this controller
         $this->context->smarty->assign([
             'housekeeping_ajax_url' => $ajaxUrl,
         ]);

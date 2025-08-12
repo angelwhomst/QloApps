@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+    <name>housekeepingmanagement</name>
+    <displayName>Housekeeping Management</displayName>
+    <version>1.0.0</version>
+    <description>Manage housekeeping tasks efficiently.</description>
+    <author>Your Name</author>
+    <tab>Admin</tab>
+</module>

@@ -1,0 +1,40 @@
+/* housekeepingexecutive.css - simple styling to match admin design system */
+/* Card text sizes */
+.housekeeping-dashboard .card .card-title { font-size: 0.95rem; }
+.housekeeping-dashboard .card h2 { margin: 0; font-size: 1.6rem; }
+
+/* SOP form specifics */
+#sop-form .input-group-append .btn { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+
+/* Badges - bootstrap style fallback */
+.badge { display:inline-block; padding:.35em .6em; font-size:.75em; border-radius:.25rem; color:#fff;}
+.badge-success { background-color:#28a745; }
+.badge-warning { background-color:#ffc107; color:#212529; }
+.badge-danger { background-color:#dc3545; }
+
+/* Loading & empty placeholders */
+#sop-loading, #room-loading { padding: 10px; font-style: italic; }
+#sop-empty, #room-empty { padding: 10px; font-style: italic; }
+
+/* Smaller screens: summary cards stack */
+@media (max-width: 576px) {
+  .housekeeping-dashboard .card h2 { font-size: 1.2rem; }
+}
+
+/* Buttons spacing */
+#btn-add-sop { margin-right: 10px; }
+
+/* Table responsive improvements */
+.table td, .table th { vertical-align: middle; }
+
+/* Step input remove button spacing */
+.sop-step-row .btn { margin-left: 8px; }
+
+/* Make the "invalid-feedback" visible as red text without bootstrap JS */
+.invalid-feedback { color: #dc3545; display: none; font-size: .875rem; }
+
+/* Show invalid-feedback when displayed by JS */
+.invalid-feedback.d-block { display: block; }
+
+/* Small layout polish */
+.card-header .nav { margin-left: -0.5rem; }
