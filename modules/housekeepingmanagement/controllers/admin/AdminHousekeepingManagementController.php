@@ -3,6 +3,9 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+require_once(_PS_MODULE_DIR_.'hotelreservationsystem/classes/HotelRoomInformation.php');
+require_once(_PS_MODULE_DIR_.'hotelreservationsystem/classes/HotelBranchInformation.php');
+
 class AdminHousekeepingManagementController extends ModuleAdminController
 {
     public function __construct()
@@ -18,6 +21,9 @@ class AdminHousekeepingManagementController extends ModuleAdminController
         $this->allow_export = true;
 
         parent::__construct();
+
+        // Add soft delete filter - only show non-deleted records
+        $this->_where = 'AND a.`deleted` = 0';
 
         $this->addRowAction('edit');
         $this->addRowAction('delete');
@@ -42,7 +48,8 @@ class AdminHousekeepingManagementController extends ModuleAdminController
             ),
             'room_type' => array(
                 'title' => $this->l('Room Type'),
-                'filter_key' => 'a!room_type'
+                'filter_key' => 'a!room_type',
+                'callback' => 'displayRoomType'
             ),
             'active' => array(
                 'title' => $this->l('Active'),
@@ -63,72 +70,91 @@ class AdminHousekeepingManagementController extends ModuleAdminController
 
         // add tabs 
         $this->tabs = array(
-            'SOPs' => $this->l('Standard Operating Procedures'),
+            'SOPs' => $this->l('SOP Management'),
             'RoomStatus' => $this->l('Room Status')
         );
     }
 
     /**
-     * render list of SOPs
+     * Display room type name
      */
-    public function renderList()
+    public function displayRoomType($roomTypeId, $row)
     {
-        //add button to create new SOP
-        $this->page_header_toolbar_btn['new_sop'] = array(
-            'href' => self::$currentIndex.'&addSOPModel&token='.$this->token,
-            'desc' => $this->l('Add New SOP'),
-            'icon' => 'process-icon-new'
-        );
-
-        //get SOPs from db
-        $sops = SOPModel::getSOPs(null, null, 0, 0, false);
-
-        //set template
-        $this->context->smarty->assign(array(
-            'sops' => $sops,
-            'link' => $this->context->link
-        ));
-
-        return parent::renderList();
+        if (empty($roomTypeId)) {
+            return $this->l('All Room Types');
+        }
+        
+        $objProduct = new Product($roomTypeId, false, $this->context->language->id);
+        if (Validate::isLoadedObject($objProduct)) {
+            return $objProduct->name;
+        }
+        
+        return $roomTypeId;
     }
 
     /**
-     * process bulk actions
+     * Override processDelete to implement soft delete
+     */
+    public function processDelete()
+    {
+        if (Validate::isLoadedObject($object = $this->loadObject())) {
+            // Implement soft delete
+            $object->deleted = 1;
+            if ($object->update()) {
+                $this->redirect_after = self::$currentIndex.'&conf=1&token='.$this->token;
+            } else {
+                $this->errors[] = $this->l('An error occurred while deleting the object.');
+            }
+        } else {
+            $this->errors[] = $this->l('An error occurred while deleting the object.');
+        }
+        
+        return $object;
+    }
+    
+    /**
+     * Override processBulkDelete to implement soft delete for multiple records
      */
     public function processBulkDelete()
     {
         if (is_array($this->boxes) && !empty($this->boxes)) {
-            foreach ($this->boxes as $id_sop) {
-                $sop = new SOPModel((int)$id_sop);
-                $sop->delete();
+            $success = true;
+            
+            foreach ($this->boxes as $id) {
+                $toDelete = new $this->className((int)$id);
+                if (Validate::isLoadedObject($toDelete)) {
+                    $toDelete->deleted = 1;
+                    $success &= $toDelete->update();
+                } else {
+                    $success = false;
+                }
             }
+            
+            if ($success) {
+                $this->redirect_after = self::$currentIndex.'&conf=2&token='.$this->token;
+            } else {
+                $this->errors[] = $this->l('An error occurred while deleting selection.');
+            }
+        } else {
+            $this->errors[] = $this->l('You must select at least one element to delete.');
         }
-        
-        return parent::processBulkDelete();
     }
 
     /**
-     * render SOP form for adding/editing
+     * Render form for adding/editing SOPs
      */
     public function renderForm()
     {
-        // get room types
-        $roomTypeOptions = array();
-        $objRoomType = new HotelRoomType();
-        $roomTypes = $objRoomType->getAllRoomTypes();
-        
-        if ($roomTypes && is_array($roomTypes)) {
-            foreach ($roomTypes as $roomType) {
-                $roomTypeOptions[] = array(
-                    'id_option' => $roomType['room_type'],
-                    'name' => $roomType['room_type']
-                );
-            }
+        if (Tools::isSubmit('viewsop_model')) {
+            return $this->renderSOPView();
         }
 
+        // Get available room types for dropdown
+        $roomTypeOptions = $this->getRoomTypeOptions();
+        
         $this->fields_form = array(
             'legend' => array(
-                'title' => $this->l('SOP Information'),
+                'title' => $this->l('Standard Operating Procedure'),
                 'icon' => 'icon-file-text'
             ),
             'input' => array(
@@ -174,117 +200,150 @@ class AdminHousekeepingManagementController extends ModuleAdminController
                             'label' => $this->l('No')
                         )
                     )
+                ),
+                array(
+                    'type' => 'hidden',
+                    'name' => 'deleted',
+                    'value' => 0
+                ),
+                array(
+                    'type' => 'hidden',
+                    'name' => 'date_add'
+                ),
+                array(
+                    'type' => 'hidden',
+                    'name' => 'date_upd'
+                ),
+                array(
+                    'type' => 'html',
+                    'name' => 'steps_container',
+                    'label' => $this->l('Steps'),
+                    'html_content' => $this->context->smarty->fetch(_PS_MODULE_DIR_.'housekeepingmanagement/views/templates/admin/steps_form.tpl')
                 )
             ),
             'submit' => array(
-                'title' => $this->l('Save')
+                'title' => $this->l('Save'),
+                'name' => 'submitAdd'.$this->table
             )
         );
         
-        // add steps fields (dynamic)
-        $this->fields_form['input'][] = array(
-            'type' => 'html',
-            'name' => 'steps_container',
-            'html_content' => $this->getStepsHtml()
-        );
-
+        // Handle steps data for editing
+        if (Tools::isSubmit('updatehousekeeping_sop')) {
+            $id_sop = (int)Tools::getValue('id_sop');
+            if ($id_sop) {
+                $sopStepModel = new SOPStepModel();
+                $steps = $sopStepModel->getStepsBySOP($id_sop);
+                
+                $this->context->smarty->assign(array(
+                    'steps' => $steps
+                ));
+            }
+        }
+        
+        // Load JS for steps management
+        $this->addJS(_PS_MODULE_DIR_.'housekeepingmanagement/views/js/sop_steps.js');
+        
         return parent::renderForm();
     }
 
     /**
-     * generate html for steps section
+     * Render SOP details view
      */
-    protected function getStepsHtml()
+    protected function renderSOPView()
     {
-        $steps = array();
+        $id_sop = (int)Tools::getValue('id_sop');
         
-        // if editing, get existing steps
-        if (Tools::isSubmit('id_sop')) {
-            $id_sop = (int)Tools::getValue('id_sop');
-            $steps = SOPStepModel::getStepsBySOP($id_sop);
+        if (!$id_sop) {
+            $this->errors[] = $this->l('Invalid SOP ID');
+            return $this->renderList();
         }
         
-        // fefault empty step if none exist
-        if (empty($steps)) {
-            $steps = array(array('step_order' => 1, 'step_description' => ''));
+        $sopModel = new SOPModel($id_sop);
+        
+        if (!Validate::isLoadedObject($sopModel) || $sopModel->deleted == 1) {
+            $this->errors[] = $this->l('SOP not found');
+            return $this->renderList();
+        }
+        
+        $sopStepModel = new SOPStepModel();
+        $steps = $sopStepModel->getStepsBySOP($id_sop);
+        
+        // Fetch employee name
+        $employee_name = '';
+        if ($sopModel->id_employee) {
+            $employee = new Employee((int)$sopModel->id_employee);
+            if (Validate::isLoadedObject($employee)) {
+                $employee_name = $employee->firstname . ' ' . $employee->lastname;
+            }
         }
         
         $this->context->smarty->assign(array(
-            'steps' => $steps
+            'sop' => $sopModel,
+            'steps' => $steps,
+            'link' => $this->context->link,
+            'employee_name' => $employee_name,
         ));
         
-        return $this->context->smarty->fetch(_PS_MODULE_DIR_.'housekeepingmanagement/views/templates/admin/steps_form.tpl');
+        return $this->context->smarty->fetch(_PS_MODULE_DIR_.'housekeepingmanagement/views/templates/admin/sop_view.tpl');
     }
 
     /**
-     * process form submission
+     * Process form submission
      */
     public function postProcess()
     {
-        if (Tools::isSubmit('submitAddSOPModel')) {
-            // get form data
+        // Process SOP form submission
+        if (Tools::isSubmit('submitAddhousekeeping_sop')) {
             $id_sop = (int)Tools::getValue('id_sop');
-            $title = Tools::getValue('title');
-            $description = Tools::getValue('description');
-            $room_type = Tools::getValue('room_type');
-            $active = (int)Tools::getValue('active', 1);
+            
+            // Validate required fields
+            if (!Tools::getValue('title') || !Tools::getValue('description')) {
+                $this->errors[] = $this->l('Title and description are required');
+            }
+            
+            // Validate steps
             $steps = Tools::getValue('step');
-            
-            //validate form data
-            if (empty($title)) {
-                $this->errors[] = $this->l('Title is required');
-            }
-            
-            if (empty($description)) {
-                $this->errors[] = $this->l('Description is required');
-            }
-            
-            if (empty($steps) || !is_array($steps)) {
+            if (!$steps || !is_array($steps) || count($steps) < 1) {
                 $this->errors[] = $this->l('At least one step is required');
             }
             
-            // if no errors, save SOP
+            // If no errors, proceed with save
             if (empty($this->errors)) {
-                if ($id_sop) {
-                    $sop = new SOPModel($id_sop);
-                } else {
-                    $sop = new SOPModel();
+                // Create or update SOP
+                $sopModel = new SOPModel($id_sop);
+                $sopModel->title = Tools::getValue('title');
+                $sopModel->description = Tools::getValue('description');
+                $sopModel->room_type = Tools::getValue('room_type');
+                $sopModel->active = (int)Tools::getValue('active');
+                $sopModel->deleted = 0; // Ensure it's not deleted
+                
+                // Set timestamps
+                if (!$id_sop) {
+                    $sopModel->date_add = date('Y-m-d H:i:s');
+                    $sopModel->id_employee = $this->context->employee->id; // Changed from created_by to id_employee
                 }
+                $sopModel->date_upd = date('Y-m-d H:i:s');
                 
-                $sop->title = $title;
-                $sop->description = $description;
-                $sop->room_type = $room_type;
-                $sop->active = $active;
-                $sop->id_employee = $this->context->employee->id;
-                
-                if ($id_sop) {
-                    $success = $sop->update();
-                } else {
-                    $success = $sop->add();
-                }
-                
-                if ($success) {
-                    //save steps
-                    SOPStepModel::deleteStepsBySOP($sop->id_sop);
-                    
-                    foreach ($steps as $order => $description) {
-                        if (!empty($description)) {
-                            $step = new SOPStepModel();
-                            $step->id_sop = $sop->id_sop;
-                            $step->step_order = $order + 1;
-                            $step->step_description = $description;
-                            $step->add();
-                        }
+                // Save SOP
+                if ($sopModel->save()) {
+                    // Delete existing steps if editing
+                    if ($id_sop) {
+                        $sopStepModel = new SOPStepModel();
+                        $sopStepModel->deleteStepsBySOP($id_sop);
                     }
                     
+                    // Create new steps
+                    foreach ($steps as $index => $step) {
+                        $sopStepModel = new SOPStepModel();
+                        $sopStepModel->id_sop = $sopModel->id; // Changed from sop_id to id_sop
+                        $sopStepModel->step_order = $index + 1;
+                        $sopStepModel->step_description = $step;
+                        $sopStepModel->save();
+                    }
+                    
+                    // Set confirmation message
                     if ($id_sop) {
                         $this->confirmations[] = $this->l('SOP updated successfully');
-                    } else {
-                        $this->confirmations[] = $this->l('SOP created successfully');
-                    }
-                    
-                    if (Tools::isSubmit('submitAddSOPModelAndStay')) {
-                        Tools::redirectAdmin(self::$currentIndex.'&id_sop='.$sop->id_sop.'&updateSOPModel&conf=4&token='.$this->token);
                     } else {
                         Tools::redirectAdmin(self::$currentIndex.'&conf=4&token='.$this->token);
                     }
@@ -310,66 +369,19 @@ class AdminHousekeepingManagementController extends ModuleAdminController
     }
 
     /**
-     * render view for room status management
-     */
-    public function displayRoomStatusTab()
-    {
-        // get all hotel rooms
-        $objHotelRoomInfo = new HotelRoomInformation();
-        $rooms = $objHotelRoomInfo->getAllHotelRooms();
-
-        // get status for all rooms
-        $roomStatuses = RoomStatusModel::getRoomsByStatus();
-
-        // map room statuses to rooms
-        $roomsWithStatus = array();
-
-        foreach ($rooms as $room) {
-            $roomStatus = RoomStatusModel::STATUS_NOT_CLEANED;
-
-            // check if room has a ststus
-            foreach ($roomStatuses as $status) {
-                if ($status['id_room'] == $room['id']) {
-                    $roomStatus = $status['status'];
-                    break;
-                }
-            }
-
-            $roomsWithStatus[] = array(
-                'id' => $room['id'],
-                'room_num' => $room['room_num'],
-                'room_type' => $room['room_type'],
-                'hotel_name' => $room['hotel_name'],
-                'status' => $roomStatus
-            );
-        }
-
-        // get summary count 
-        $summary = RoomStatusModel::getRoomStatusSummary();
-
-        $this->context->smarty->assign(array(
-            'rooms' => $roomsWithStatus,
-            'summary' => $summary,
-            'cleaned_status' => RoomStatusModel::STATUS_CLEANED,
-            'not_cleaned_status' => RoomStatusModel::STATUS_NOT_CLEANED,
-            'failed_inspection_status' => RoomStatusModel::STATUS_FAILED_INSPECTION,
-            'current_url' => $this->context->link->getAdminLink('AdminHousekeepingManagement')
-        ));
-
-        return $this->context->smarty->fetch(_PS_MODULE_DIR_.'housekeepingmanagement/views/templates/admin/room_status.tpl');
-    }
-
-    /**
-     * AJAX process to update room status
+     * Ajax method to handle room status updates
      */
     public function ajaxProcessUpdateRoomStatus()
     {
-        $response = array('success' => false);
-
+        $response = array(
+            'success' => false,
+            'message' => ''
+        );
+        
         if (Tools::isSubmit('id_room') && Tools::isSubmit('status')) {
             $id_room = (int)Tools::getValue('id_room');
             $status = Tools::getValue('status');
-
+            
             if (RoomStatusModel::updateRoomStatus($id_room, $status, $this->context->employee->id)) {
                 $response['success'] = true;
                 $response['message'] = $this->l('Room status updated successfully');
@@ -430,5 +442,65 @@ class AdminHousekeepingManagementController extends ModuleAdminController
         ));
         
         $this->context->smarty->assign('content', $this->context->smarty->fetch(_PS_MODULE_DIR_.'housekeepingmanagement/views/templates/admin/tabs.tpl'));
+    }
+
+    /**
+     * render view for room status management
+     */
+    public function displayRoomStatusTab()
+    {
+        // get all hotel rooms
+        $objHotelRoomInfo = new HotelRoomInformation();
+        $rooms = $objHotelRoomInfo->getAllHotelRooms();
+        
+        // get room status data
+        $roomStatusData = RoomStatusModel::getRoomStatusSummary();
+        
+        $this->context->smarty->assign(array(
+            'rooms' => $rooms,
+            'summary' => $roomStatusData,
+            'status_cleaned' => RoomStatusModel::STATUS_CLEANED,
+            'status_not_cleaned' => RoomStatusModel::STATUS_NOT_CLEANED,
+            'status_failed_inspection' => RoomStatusModel::STATUS_FAILED_INSPECTION,
+            'link' => $this->context->link
+        ));
+        
+        return $this->context->smarty->fetch(_PS_MODULE_DIR_.'housekeepingmanagement/views/templates/admin/room_status.tpl');
+    }
+
+    /**
+     * Get room type options for dropdown
+     */
+    protected function getRoomTypeOptions()
+    {
+        $roomTypes = array();
+        
+        // Get room types from product table where hotel room is set
+        $sql = 'SELECT p.id_product, pl.name 
+                FROM '._DB_PREFIX_.'product p
+                LEFT JOIN '._DB_PREFIX_.'product_lang pl ON (p.id_product = pl.id_product AND pl.id_lang = '.(int)$this->context->language->id.')
+                WHERE p.id_product IN (
+                    SELECT id_product FROM '._DB_PREFIX_.'htl_room_type
+                )
+                ORDER BY pl.name ASC';
+        
+        $result = Db::getInstance()->executeS($sql);
+        
+        if ($result) {
+            // Add "All Room Types" option
+            $roomTypes[] = array(
+                'id_option' => '',
+                'name' => $this->l('All Room Types')
+            );
+            
+            foreach ($result as $row) {
+                $roomTypes[] = array(
+                    'id_option' => $row['id_product'],
+                    'name' => $row['name']
+                );
+            }
+        }
+        
+        return $roomTypes;
     }
 }

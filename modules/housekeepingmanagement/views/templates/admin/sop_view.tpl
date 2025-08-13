@@ -55,7 +55,13 @@
                     </div>
                     <div class="row">
                         <div class="col-xs-6 text-right">{l s='Created by:' mod='housekeepingmanagement'}</div>
-                        <div class="col-xs-6"><strong>{$employee_name|escape:'html':'UTF-8'}</strong></div>
+                        <div class="col-xs-6"><strong>
+                            {if isset($employee_name) && $employee_name}
+                                {$employee_name|escape:'html':'UTF-8'}
+                            {else}
+                                {l s='N/A' mod='housekeepingmanagement'}
+                            {/if}
+                        </strong></div>
                     </div>
                     <div class="row">
                         <div class="col-xs-6 text-right">{l s='Created:' mod='housekeepingmanagement'}</div>

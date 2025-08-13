@@ -159,17 +159,18 @@ class AdminRoomStatusManagementController extends ModuleAdminController
     {
         // add SQL tables and columns for joins
         $this->_select = '
-            hri.`room_num`,
-            hbi.`hotel_name`,
-            pl.`name` AS room_type,
-            CONCAT(e.`firstname`, " ", e.`lastname`) AS employee_name';
+        hri.`room_num`,
+        hbl.`hotel_name`,
+        pl.`name` AS room_type,
+        CONCAT(e.`firstname`, " ", e.`lastname`) AS employee_name';
 
-        $this->_join = '
-            LEFT JOIN `'._DB_PREFIX_.'htl_room_information` hri ON (a.`id_room` = hri.`id`)
-            LEFT JOIN `'._DB_PREFIX_.'htl_branch_info` hbi ON (hri.`id_hotel` = hbi.`id`)
-            LEFT JOIN `'._DB_PREFIX_.'product` p ON (hri.`id_product` = p.`id_product`)
-            LEFT JOIN `'._DB_PREFIX_.'product_lang` pl ON (p.`id_product` = pl.`id_product` AND pl.`id_lang` = '.(int)$id_lang.')
-            LEFT JOIN `'._DB_PREFIX_.'employee` e ON (a.`id_employee` = e.`id_employee`)';
+    $this->_join = '
+        LEFT JOIN `'._DB_PREFIX_.'htl_room_information` hri ON (a.`id_room` = hri.`id`)
+        LEFT JOIN `'._DB_PREFIX_.'htl_branch_info` hbi ON (hri.`id_hotel` = hbi.`id`)
+        LEFT JOIN `'._DB_PREFIX_.'htl_branch_info_lang` hbl ON (hbi.`id` = hbl.`id` AND hbl.`id_lang` = '.(int)$id_lang.')
+        LEFT JOIN `'._DB_PREFIX_.'product` p ON (hri.`id_product` = p.`id_product`)
+        LEFT JOIN `'._DB_PREFIX_.'product_lang` pl ON (p.`id_product` = pl.`id_product` AND pl.`id_lang` = '.(int)$id_lang.')
+        LEFT JOIN `'._DB_PREFIX_.'employee` e ON (a.`id_employee` = e.`id_employee`)';
 
         $this->_where = '';
         $this->_group = '';
@@ -188,31 +189,38 @@ class AdminRoomStatusManagementController extends ModuleAdminController
     {
         // get rooms that don't have status entries
         $sql = '
-            SELECT 
-                hri.`id` AS id_room,
-                hri.`room_num`,
-                hbi.`hotel_name`,
-                pl.`name` AS room_type,
-                "'.pSQL(RoomStatusModel::STATUS_NOT_CLEANED).'" AS status,
-                NULL AS id_employee,
-                NULL AS employee_name,
-                NULL AS date_upd
-            FROM `'._DB_PREFIX_.'htl_room_information` hri
-            LEFT JOIN `'._DB_PREFIX_.'htl_branch_info` hbi ON (hri.`id_hotel` = hbi.`id`)
-            LEFT JOIN `'._DB_PREFIX_.'product` p ON (hri.`id_product` = p.`id_product`)
-            LEFT JOIN `'._DB_PREFIX_.'product_lang` pl ON (p.`id_product` = pl.`id_product` AND pl.`id_lang` = '.(int)$id_lang.')
-            LEFT JOIN `'._DB_PREFIX_.'housekeeping_room_status` hrs ON (hri.`id` = hrs.`id_room`)
-            WHERE hrs.`id_room_status` IS NULL';
+        SELECT 
+            hri.`id` AS id_room,
+            hri.`room_num`,
+            hbl.`hotel_name`,
+            pl.`name` AS room_type,
+            "'.pSQL(RoomStatusModel::STATUS_NOT_CLEANED).'" AS status,
+            NULL AS id_employee,
+            NULL AS employee_name,
+            NULL AS date_upd
+        FROM `'._DB_PREFIX_.'htl_room_information` hri
+        LEFT JOIN `'._DB_PREFIX_.'htl_branch_info` hbi ON (hri.`id_hotel` = hbi.`id`)
+        LEFT JOIN `'._DB_PREFIX_.'htl_branch_info_lang` hbl ON (hbi.`id` = hbl.`id` AND hbl.`id_lang` = '.(int)$id_lang.')
+        LEFT JOIN `'._DB_PREFIX_.'product` p ON (hri.`id_product` = p.`id_product`)
+        LEFT JOIN `'._DB_PREFIX_.'product_lang` pl ON (p.`id_product` = pl.`id_product` AND pl.`id_lang` = '.(int)$id_lang.')
+        LEFT JOIN `'._DB_PREFIX_.'housekeeping_room_status` hrs ON (hri.`id` = hrs.`id_room`)
+        WHERE hrs.`id_room_status` IS NULL';
         
         $result = Db::getInstance()->executeS($sql);
         
         if ($result) {
-            // combine with existing list
-            $this->_list = array_merge($this->_list, $result);
-            $this->_listTotal += count($result);
+        foreach ($result as &$row) {
+            if (!$row['employee_name']) {
+                $row['employee_name'] = $this->l('N/A');
+            }
+            if (!$row['date_upd']) {
+                $row['date_upd'] = '-';
+            }
         }
+        $this->_list = array_merge($this->_list, $result);
+        $this->_listTotal += count($result);
     }
-
+}
     /**
      * render the list toolbar
      */
@@ -342,18 +350,20 @@ class AdminRoomStatusManagementController extends ModuleAdminController
      */
     protected function getStatusByHotel()
     {
+        $id_lang = (int)$this->context->language->id;
         $sql = '
             SELECT 
-                hbi.`hotel_name`,
+                hbl.`hotel_name`,
                 COUNT(DISTINCT hri.`id`) as total,
                 SUM(CASE WHEN hrs.`status` = "'.pSQL(RoomStatusModel::STATUS_CLEANED).'" THEN 1 ELSE 0 END) as cleaned,
                 SUM(CASE WHEN hrs.`status` = "'.pSQL(RoomStatusModel::STATUS_NOT_CLEANED).'" OR hrs.`status` IS NULL THEN 1 ELSE 0 END) as not_cleaned,
                 SUM(CASE WHEN hrs.`status` = "'.pSQL(RoomStatusModel::STATUS_FAILED_INSPECTION).'" THEN 1 ELSE 0 END) as failed_inspection
             FROM `'._DB_PREFIX_.'htl_branch_info` hbi
+            LEFT JOIN `'._DB_PREFIX_.'htl_branch_info_lang` hbl ON (hbi.`id` = hbl.`id` AND hbl.`id_lang` = '.$id_lang.')
             LEFT JOIN `'._DB_PREFIX_.'htl_room_information` hri ON (hbi.`id` = hri.`id_hotel`)
             LEFT JOIN `'._DB_PREFIX_.'housekeeping_room_status` hrs ON (hri.`id` = hrs.`id_room`)
             GROUP BY hbi.`id`
-            ORDER BY hbi.`hotel_name`';
+            ORDER BY hbl.`hotel_name`';
         
         return Db::getInstance()->executeS($sql);
     }

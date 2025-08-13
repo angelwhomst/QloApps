@@ -41,176 +41,113 @@
         <div class="col-md-9">
             <div class="panel">
                 <div class="panel-heading">
-                    <i class="icon-search"></i> {l s='Filter Rooms' mod='housekeepingmanagement'}
+                    <i class="icon-list"></i> {l s='Room Status List' mod='housekeepingmanagement'}
                 </div>
                 <div class="panel-body">
-                    <form id="filter-form" class="form-inline" method="post">
-                        <div class="form-group">
-                            <label for="filter-status">{l s='Status:' mod='housekeepingmanagement'}</label>
-                            <select id="filter-status" class="form-control">
-                                <option value="">{l s='All' mod='housekeepingmanagement'}</option>
-                                <option value="{$cleaned_status}">{l s='Cleaned' mod='housekeepingmanagement'}</option>
-                                <option value="{$not_cleaned_status}">{l s='Not Cleaned' mod='housekeepingmanagement'}</option>
-                                <option value="{$failed_inspection_status}">{l s='Failed Inspection' mod='housekeepingmanagement'}</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="filter-hotel">{l s='Hotel:' mod='housekeepingmanagement'}</label>
-                            <select id="filter-hotel" class="form-control">
-                                <option value="">{l s='All' mod='housekeepingmanagement'}</option>
-                                {assign var=hotels value=[]}
-                                {foreach from=$rooms item=room}
-                                    {if !in_array($room.hotel_name, $hotels)}
-                                        {append var=hotels value=$room.hotel_name}
-                                        <option value="{$room.hotel_name|escape:'html':'UTF-8'}">{$room.hotel_name|escape:'html':'UTF-8'}</option>
-                                    {/if}
-                                {/foreach}
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="filter-room-type">{l s='Room Type:' mod='housekeepingmanagement'}</label>
-                            <select id="filter-room-type" class="form-control">
-                                <option value="">{l s='All' mod='housekeepingmanagement'}</option>
-                                {assign var=roomTypes value=[]}
-                                {foreach from=$rooms item=room}
-                                    {if !in_array($room.room_type, $roomTypes)}
-                                        {append var=roomTypes value=$room.room_type}
-                                        <option value="{$room.room_type|escape:'html':'UTF-8'}">{$room.room_type|escape:'html':'UTF-8'}</option>
-                                    {/if}
-                                {/foreach}
-                            </select>
-                        </div>
-                    </form>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>{l s='Room Number' mod='housekeepingmanagement'}</th>
+                                    <th>{l s='Hotel' mod='housekeepingmanagement'}</th>
+                                    <th>{l s='Room Type' mod='housekeepingmanagement'}</th>
+                                    <th>{l s='Status' mod='housekeepingmanagement'}</th>
+                                    <th>{l s='Last Updated' mod='housekeepingmanagement'}</th>
+                                    <th>{l s='Actions' mod='housekeepingmanagement'}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {if isset($rooms) && $rooms}
+                                    {foreach from=$rooms item=room}
+                                        <tr id="room-{$room.id}">
+                                            <td>{$room.room_num}</td>
+                                            <td>{$room.hotel_name}</td>
+                                            <td>{$room.room_type_name}</td>
+                                            <td class="status-cell">
+                                                {if isset($room.status)}
+                                                    {if $room.status == $status_cleaned}
+                                                        <span class="label label-success">{l s='Cleaned' mod='housekeepingmanagement'}</span>
+                                                    {elseif $room.status == $status_failed_inspection}
+                                                        <span class="label label-danger">{l s='Failed Inspection' mod='housekeepingmanagement'}</span>
+                                                    {else}
+                                                        <span class="label label-warning">{l s='Not Cleaned' mod='housekeepingmanagement'}</span>
+                                                    {/if}
+                                                {else}
+                                                    <span class="label label-warning">{l s='Not Cleaned' mod='housekeepingmanagement'}</span>
+                                                {/if}
+                                            </td>
+                                            <td>
+                                                {if isset($room.date_upd)}
+                                                    {$room.date_upd|date_format:"%Y-%m-%d %H:%M"}
+                                                {else}
+                                                    -
+                                                {/if}
+                                            </td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                                                        {l s='Update Status' mod='housekeepingmanagement'} <span class="caret"></span>
+                                                    </button>
+                                                    <ul class="dropdown-menu" role="menu">
+                                                        <li>
+                                                            <a href="#" class="update-status" data-room-id="{$room.id}" data-status="{$status_cleaned}">
+                                                                <i class="icon-check text-success"></i> {l s='Mark as Cleaned' mod='housekeepingmanagement'}
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a href="#" class="update-status" data-room-id="{$room.id}" data-status="{$status_not_cleaned}">
+                                                                <i class="icon-times text-warning"></i> {l s='Mark as Not Cleaned' mod='housekeepingmanagement'}
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a href="#" class="update-status" data-room-id="{$room.id}" data-status="{$status_failed_inspection}">
+                                                                <i class="icon-warning text-danger"></i> {l s='Mark as Failed Inspection' mod='housekeepingmanagement'}
+                                                            </a>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {/foreach}
+                                {else}
+                                    <tr>
+                                        <td colspan="6" class="text-center">{l s='No rooms found' mod='housekeepingmanagement'}</td>
+                                    </tr>
+                                {/if}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-    
-    <div class="table-responsive">
-        <table id="room-status-table" class="table">
-            <thead>
-                <tr>
-                    <th>{l s='Room Number' mod='housekeepingmanagement'}</th>
-                    <th>{l s='Room Type' mod='housekeepingmanagement'}</th>
-                    <th>{l s='Hotel' mod='housekeepingmanagement'}</th>
-                    <th>{l s='Status' mod='housekeepingmanagement'}</th>
-                    <th>{l s='Actions' mod='housekeepingmanagement'}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {foreach from=$rooms item=room}
-                    <tr data-id-room="{$room.id}" data-hotel="{$room.hotel_name|escape:'html':'UTF-8'}" data-room-type="{$room.room_type|escape:'html':'UTF-8'}" data-status="{$room.status|escape:'html':'UTF-8'}">
-                        <td>{$room.room_num|escape:'html':'UTF-8'}</td>
-                        <td>{$room.room_type|escape:'html':'UTF-8'}</td>
-                        <td>{$room.hotel_name|escape:'html':'UTF-8'}</td>
-                        <td>
-                            {if $room.status == $cleaned_status}
-                                <span class="label label-success">{l s='Cleaned' mod='housekeepingmanagement'}</span>
-                            {elseif $room.status == $not_cleaned_status}
-                                <span class="label label-warning">{l s='Not Cleaned' mod='housekeepingmanagement'}</span>
-                            {elseif $room.status == $failed_inspection_status}
-                                <span class="label label-danger">{l s='Failed Inspection' mod='housekeepingmanagement'}</span>
-                            {/if}
-                        </td>
-                        <td>
-                            <div class="btn-group">
-                                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
-                                    {l s='Change Status' mod='housekeepingmanagement'} <span class="caret"></span>
-                                </button>
-                                <ul class="dropdown-menu">
-                                    <li>
-                                        <a href="#" class="update-status" data-status="{$cleaned_status}">
-                                            <i class="icon-check text-success"></i> {l s='Mark as Cleaned' mod='housekeepingmanagement'}
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="#" class="update-status" data-status="{$not_cleaned_status}">
-                                            <i class="icon-times text-warning"></i> {l s='Mark as Not Cleaned' mod='housekeepingmanagement'}
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="#" class="update-status" data-status="{$failed_inspection_status}">
-                                            <i class="icon-warning text-danger"></i> {l s='Mark as Failed Inspection' mod='housekeepingmanagement'}
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                        </td>
-                    </tr>
-                {/foreach}
-            </tbody>
-        </table>
     </div>
 </div>
 
 <script type="text/javascript">
     $(document).ready(function() {
-        // Filter table
-        function filterTable() {
-            var statusFilter = $('#filter-status').val();
-            var hotelFilter = $('#filter-hotel').val();
-            var roomTypeFilter = $('#filter-room-type').val();
-            
-            $('#room-status-table tbody tr').each(function() {
-                var show = true;
-                
-                if (statusFilter && $(this).data('status') != statusFilter) {
-                    show = false;
-                }
-                
-                if (hotelFilter && $(this).data('hotel') != hotelFilter) {
-                    show = false;
-                }
-                
-                if (roomTypeFilter && $(this).data('room-type') != roomTypeFilter) {
-                    show = false;
-                }
-                
-                if (show) {
-                    $(this).show();
-                } else {
-                    $(this).hide();
-                }
-            });
-        }
-        
-        $('#filter-status, #filter-hotel, #filter-room-type').change(function() {
-            filterTable();
-        });
-        
-        // Update room status
         $('.update-status').click(function(e) {
             e.preventDefault();
             
-            var btn = $(this);
-            var row = btn.closest('tr');
-            var idRoom = row.data('id-room');
-            var status = btn.data('status');
+            var roomId = $(this).data('room-id');
+            var status = $(this).data('status');
+            var statusCell = $('#room-' + roomId + ' .status-cell');
             
             $.ajax({
-                url: '{$current_url|escape:'javascript':'UTF-8'}&ajax=1&action=UpdateRoomStatus',
+                url: '{$link->getAdminLink('AdminHousekeepingManagement')|escape:'javascript':'UTF-8'}&ajax=1&action=updateRoomStatus',
                 type: 'POST',
                 data: {
-                    id_room: idRoom,
+                    id_room: roomId,
                     status: status
                 },
                 dataType: 'json',
                 success: function(response) {
                     if (response.success) {
-                        // Update row status
-                        row.data('status', status);
-                        
-                        // Update status label
-                        var statusCell = row.find('td:eq(3)');
-                        statusCell.empty();
-                        
-                        if (status == '{$cleaned_status}') {
+                        // Update status cell
+                        if (status == '{$status_cleaned}') {
                             statusCell.html('<span class="label label-success">{l s='Cleaned' mod='housekeepingmanagement'}</span>');
-                        } else if (status == '{$not_cleaned_status}') {
+                        } else if (status == '{$status_not_cleaned}') {
                             statusCell.html('<span class="label label-warning">{l s='Not Cleaned' mod='housekeepingmanagement'}</span>');
-                        } else if (status == '{$failed_inspection_status}') {
+                        } else if (status == '{$status_failed_inspection}') {
                             statusCell.html('<span class="label label-danger">{l s='Failed Inspection' mod='housekeepingmanagement'}</span>');
                         }
                         

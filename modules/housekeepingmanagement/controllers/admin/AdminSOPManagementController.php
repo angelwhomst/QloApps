@@ -3,6 +3,9 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+require_once(_PS_MODULE_DIR_.'hotelreservationsystem/classes/HotelRoomInformation.php');
+require_once(_PS_MODULE_DIR_.'hotelreservationsystem/classes/HotelBranchInformation.php');
+
 class AdminSOPManagementController extends ModuleAdminController
 {
     public function __construct()
@@ -30,6 +33,9 @@ class AdminSOPManagementController extends ModuleAdminController
             )
         );
 
+        // Add the deleted = 0 filter to only show active records
+        $this->_where = 'AND a.`deleted` = 0';
+
         $this->fields_list = array(
             'id_sop' => array(
                 'title' => $this->l('ID'),
@@ -42,7 +48,8 @@ class AdminSOPManagementController extends ModuleAdminController
             ),
             'room_type' => array(
                 'title' => $this->l('Room Type'),
-                'filter_key' => 'a!room_type'
+                'filter_key' => 'a!room_type',
+                'callback' => 'displayRoomType'
             ),
             'active' => array(
                 'title' => $this->l('Active'),
@@ -63,38 +70,81 @@ class AdminSOPManagementController extends ModuleAdminController
     }
 
     /**
-     * render list of SOPs
+     * Display room type name
      */
-    public function renderList()
+    public function displayRoomType($roomTypeId, $row)
     {
-        $this->page_header_toolbar_btn['new_sop'] = array(
-            'href' => self::$currentIndex.'&addSOPModel&token='.$this->token,
-            'desc' => $this->l('Add New SOP'),
-            'icon' => 'process-icon-new'
-        );
+        if (empty($roomTypeId)) {
+            return $this->l('All Room Types');
+        }
         
-        return parent::renderList();
+        $objProduct = new Product($roomTypeId, false, $this->context->language->id);
+        if (Validate::isLoadedObject($objProduct)) {
+            return $objProduct->name;
+        }
+        
+        return $roomTypeId;
     }
 
     /**
-     * render SOP form for adding/editing
+     * Override delete method to implement soft delete
+     */
+    public function processDelete()
+    {
+        if (Validate::isLoadedObject($object = $this->loadObject())) {
+            // Implement soft delete instead of hard delete
+            $object->deleted = 1;
+            $object->active = 0; // Also deactivate it
+            
+            if ($object->update()) {
+                $this->redirect_after = self::$currentIndex.'&conf=1&token='.$this->token;
+            } else {
+                $this->errors[] = $this->l('An error occurred while deleting the object.').' <b>'.$this->table.'</b> '.$this->l('(cannot load object)');
+            }
+        } else {
+            $this->errors[] = $this->l('An error occurred while deleting the object.').' <b>'.$this->table.'</b> '.$this->l('(cannot load object)');
+        }
+        
+        return $object;
+    }
+    
+    /**
+     * Implement bulk soft delete
+     */
+    public function processBulkDelete()
+    {
+        if (is_array($this->boxes) && !empty($this->boxes)) {
+            $success = true;
+            
+            foreach ($this->boxes as $id) {
+                $object = new $this->className((int)$id);
+                if (Validate::isLoadedObject($object)) {
+                    $object->deleted = 1;
+                    $object->active = 0;
+                    $success &= $object->update();
+                } else {
+                    $success = false;
+                }
+            }
+            
+            if ($success) {
+                $this->redirect_after = self::$currentIndex.'&conf=2&token='.$this->token;
+            } else {
+                $this->errors[] = $this->l('An error occurred while deleting selection.');
+            }
+        } else {
+            $this->errors[] = $this->l('You must select at least one element to delete.');
+        }
+    }
+
+    /**
+     * Render form for adding/editing SOPs
      */
     public function renderForm()
     {
-        // Get room types from hotelreservationsystem module
-        $roomTypeOptions = array();
-        $objRoomType = new HotelRoomType();
-        $roomTypes = $objRoomType->getAllRoomTypes();
+        // Get available room types for dropdown
+        $roomTypeOptions = $this->getRoomTypeOptions();
         
-        if ($roomTypes && is_array($roomTypes)) {
-            foreach ($roomTypes as $roomType) {
-                $roomTypeOptions[] = array(
-                    'id_option' => $roomType['room_type'],
-                    'name' => $roomType['room_type']
-                );
-            }
-        }
-
         $this->fields_form = array(
             'legend' => array(
                 'title' => $this->l('SOP Information'),
@@ -143,6 +193,11 @@ class AdminSOPManagementController extends ModuleAdminController
                             'label' => $this->l('No')
                         )
                     )
+                ),
+                array(
+                    'type' => 'hidden',
+                    'name' => 'deleted',
+                    'value' => 0
                 )
             ),
             'submit' => array(
@@ -218,47 +273,41 @@ class AdminSOPManagementController extends ModuleAdminController
                     $sop = new SOPModel($id_sop);
                 } else {
                     $sop = new SOPModel();
+                    $sop->date_add = date('Y-m-d H:i:s');
+                    $sop->id_employee = $this->context->employee->id;
+                    $sop->deleted = 0; // Ensure deleted flag is set to 0 for new records
                 }
                 
                 $sop->title = $title;
                 $sop->description = $description;
                 $sop->room_type = $room_type;
                 $sop->active = $active;
-                $sop->id_employee = $this->context->employee->id;
+                $sop->date_upd = date('Y-m-d H:i:s');
                 
-                if ($id_sop) {
-                    $success = $sop->update();
-                } else {
-                    $success = $sop->add();
-                }
-                
-                if ($success) {
-                    // save steps
-                    SOPStepModel::deleteStepsBySOP($sop->id_sop);
+                if ($sop->save()) {
+                    // delete existing steps
+                    if ($id_sop) {
+                        SOPStepModel::deleteStepsBySOP($id_sop);
+                    }
                     
-                    foreach ($steps as $order => $description) {
-                        if (!empty($description)) {
-                            $step = new SOPStepModel();
-                            $step->id_sop = $sop->id_sop;
-                            $step->step_order = $order + 1;
-                            $step->step_description = $description;
-                            $step->add();
+                    // save steps
+                    foreach ($steps as $index => $step) {
+                        if (!empty($step)) {
+                            $sopStep = new SOPStepModel();
+                            $sopStep->id_sop = $sop->id;
+                            $sopStep->step_order = $index + 1;
+                            $sopStep->step_description = $step;
+                            $sopStep->save();
                         }
                     }
                     
                     if ($id_sop) {
                         $this->confirmations[] = $this->l('SOP updated successfully');
                     } else {
-                        $this->confirmations[] = $this->l('SOP created successfully');
-                    }
-                    
-                    if (Tools::isSubmit('submitAddSOPModelAndStay')) {
-                        Tools::redirectAdmin(self::$currentIndex.'&id_sop='.$sop->id_sop.'&updateSOPModel&conf=4&token='.$this->token);
-                    } else {
-                        Tools::redirectAdmin(self::$currentIndex.'&conf=4&token='.$this->token);
+                        Tools::redirectAdmin(self::$currentIndex.'&conf=3&token='.$this->token);
                     }
                 } else {
-                    $this->errors[] = $this->l('An error occurred while saving the SOP');
+                    $this->errors[] = $this->l('Error saving SOP');
                 }
             }
         }
@@ -267,43 +316,87 @@ class AdminSOPManagementController extends ModuleAdminController
     }
 
     /**
-     * render view of a SOP
+     * Render SOP details view
      */
     public function renderView()
     {
-        if (!($id_sop = (int)Tools::getValue('id_sop')) || !Validate::isLoadedObject($sop = new SOPModel($id_sop))) {
+        $id_sop = (int)Tools::getValue('id_sop');
+        
+        if (!$id_sop) {
+            $this->errors[] = $this->l('Invalid SOP ID');
+            return $this->renderList();
+        }
+        
+        $sopModel = new SOPModel($id_sop);
+        
+        if (!Validate::isLoadedObject($sopModel) || $sopModel->deleted == 1) {
             $this->errors[] = $this->l('SOP not found');
             return $this->renderList();
         }
         
-        $steps = SOPStepModel::getStepsBySOP($id_sop);
+        $sopStepModel = new SOPStepModel();
+        $steps = $sopStepModel->getStepsBySOP($id_sop);
         
+        // Get room type name
+        $roomTypeName = $this->l('All Room Types');
+        if (!empty($sopModel->room_type)) {
+            $objProduct = new Product($sopModel->room_type, false, $this->context->language->id);
+            if (Validate::isLoadedObject($objProduct)) {
+                $roomTypeName = $objProduct->name;
+            }
+        }
+        
+        // Prepare data for view
         $this->context->smarty->assign(array(
             'sop' => array(
-                'id_sop' => $sop->id_sop,
-                'title' => $sop->title,
-                'description' => $sop->description,
-                'room_type' => $sop->room_type,
-                'active' => $sop->active,
-                'date_add' => $sop->date_add,
-                'date_upd' => $sop->date_upd
+                'id_sop' => $sopModel->id,
+                'title' => $sopModel->title,
+                'description' => $sopModel->description,
+                'room_type' => $roomTypeName,
+                'active' => $sopModel->active,
+                'date_add' => $sopModel->date_add,
+                'date_upd' => $sopModel->date_upd
             ),
             'steps' => $steps,
-            'employee_name' => $this->getEmployeeName($sop->id_employee)
+            'link' => $this->context->link
         ));
         
         return $this->context->smarty->fetch(_PS_MODULE_DIR_.'housekeepingmanagement/views/templates/admin/sop_view.tpl');
     }
-    
+
     /**
-     * get employee name by ID
+     * Get room type options for dropdown
      */
-    protected function getEmployeeName($id_employee)
+    protected function getRoomTypeOptions()
     {
-        $employee = new Employee($id_employee);
-        if (Validate::isLoadedObject($employee)) {
-            return $employee->firstname.' '.$employee->lastname;
+        $roomTypes = array();
+        
+        // Add "All Room Types" option
+        $roomTypes[] = array(
+            'id_option' => '',
+            'name' => $this->l('All Room Types')
+        );
+        
+        // Get room types from product table where hotel room is set
+        $sql = 'SELECT p.id_product, pl.name 
+                FROM '._DB_PREFIX_.'product p
+                LEFT JOIN '._DB_PREFIX_.'product_lang pl ON (p.id_product = pl.id_product AND pl.id_lang = '.(int)$this->context->language->id.')
+                WHERE p.id_product IN (
+                    SELECT id_product FROM '._DB_PREFIX_.'htl_room_type
+                )
+                ORDER BY pl.name ASC';
+        
+        $result = Db::getInstance()->executeS($sql);
+        
+        if ($result) {
+            foreach ($result as $row) {
+                $roomTypes[] = array(
+                    'id_option' => $row['id_product'],
+                    'name' => $row['name']
+                );
+            }
         }
-        return '';
+        
+        return $roomTypes;
     }
 }

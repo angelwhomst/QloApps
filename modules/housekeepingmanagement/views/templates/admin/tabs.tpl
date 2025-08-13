@@ -10,7 +10,6 @@
             {/foreach}
         </ul>
     </div>
-    
     <div class="tab-content panel">
         {$content}
     </div>
