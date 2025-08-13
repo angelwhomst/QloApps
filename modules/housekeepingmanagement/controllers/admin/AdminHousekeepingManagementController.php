@@ -76,7 +76,7 @@ class AdminHousekeepingManagementController extends ModuleAdminController
     }
 
     /**
-     * Display room type name
+     * display room type name
      */
     public function displayRoomType($roomTypeId, $row)
     {
@@ -93,7 +93,7 @@ class AdminHousekeepingManagementController extends ModuleAdminController
     }
 
     /**
-     * Override processDelete to implement soft delete
+     * override processDelete to implement soft delete
      */
     public function processDelete()
     {
@@ -113,7 +113,7 @@ class AdminHousekeepingManagementController extends ModuleAdminController
     }
     
     /**
-     * Override processBulkDelete to implement soft delete for multiple records
+     * oveerride processBulkDelete to implement soft delete for multiple records
      */
     public function processBulkDelete()
     {
@@ -141,7 +141,7 @@ class AdminHousekeepingManagementController extends ModuleAdminController
     }
 
     /**
-     * Render form for adding/editing SOPs
+     * render form for adding/editing SOPs
      */
     public function renderForm()
     {
@@ -227,7 +227,7 @@ class AdminHousekeepingManagementController extends ModuleAdminController
             )
         );
         
-        // Handle steps data for editing
+        // handle steps data for editing
         if (Tools::isSubmit('updatehousekeeping_sop')) {
             $id_sop = (int)Tools::getValue('id_sop');
             if ($id_sop) {
@@ -240,14 +240,14 @@ class AdminHousekeepingManagementController extends ModuleAdminController
             }
         }
         
-        // Load JS for steps management
+        // load JS for steps management
         $this->addJS(_PS_MODULE_DIR_.'housekeepingmanagement/views/js/sop_steps.js');
         
         return parent::renderForm();
     }
 
     /**
-     * Render SOP details view
+     * render SOP details view
      */
     protected function renderSOPView()
     {
@@ -268,7 +268,7 @@ class AdminHousekeepingManagementController extends ModuleAdminController
         $sopStepModel = new SOPStepModel();
         $steps = $sopStepModel->getStepsBySOP($id_sop);
         
-        // Fetch employee name
+        // fetch employee name
         $employee_name = '';
         if ($sopModel->id_employee) {
             $employee = new Employee((int)$sopModel->id_employee);
@@ -288,26 +288,26 @@ class AdminHousekeepingManagementController extends ModuleAdminController
     }
 
     /**
-     * Process form submission
+     * process form submission
      */
     public function postProcess()
     {
-        // Process SOP form submission
+        // process SOP form submission
         if (Tools::isSubmit('submitAddhousekeeping_sop')) {
             $id_sop = (int)Tools::getValue('id_sop');
             
-            // Validate required fields
+            // validate required fields
             if (!Tools::getValue('title') || !Tools::getValue('description')) {
                 $this->errors[] = $this->l('Title and description are required');
             }
             
-            // Validate steps
+            // validate steps
             $steps = Tools::getValue('step');
             if (!$steps || !is_array($steps) || count($steps) < 1) {
                 $this->errors[] = $this->l('At least one step is required');
             }
             
-            // If no errors, proceed with save
+            // if no errors, proceed with save
             if (empty($this->errors)) {
                 // Create or update SOP
                 $sopModel = new SOPModel($id_sop);
@@ -317,31 +317,31 @@ class AdminHousekeepingManagementController extends ModuleAdminController
                 $sopModel->active = (int)Tools::getValue('active');
                 $sopModel->deleted = 0; // Ensure it's not deleted
                 
-                // Set timestamps
+                // set timestamps
                 if (!$id_sop) {
                     $sopModel->date_add = date('Y-m-d H:i:s');
-                    $sopModel->id_employee = $this->context->employee->id; // Changed from created_by to id_employee
+                    $sopModel->id_employee = $this->context->employee->id;
                 }
                 $sopModel->date_upd = date('Y-m-d H:i:s');
                 
-                // Save SOP
+                // save SOP
                 if ($sopModel->save()) {
-                    // Delete existing steps if editing
+                    // delete existing steps if editing
                     if ($id_sop) {
                         $sopStepModel = new SOPStepModel();
                         $sopStepModel->deleteStepsBySOP($id_sop);
                     }
                     
-                    // Create new steps
+                    // create new steps
                     foreach ($steps as $index => $step) {
                         $sopStepModel = new SOPStepModel();
-                        $sopStepModel->id_sop = $sopModel->id; // Changed from sop_id to id_sop
+                        $sopStepModel->id_sop = $sopModel->id; 
                         $sopStepModel->step_order = $index + 1;
                         $sopStepModel->step_description = $step;
                         $sopStepModel->save();
                     }
                     
-                    // Set confirmation message
+                    // set confirmation message
                     if ($id_sop) {
                         $this->confirmations[] = $this->l('SOP updated successfully');
                     } else {
@@ -353,7 +353,7 @@ class AdminHousekeepingManagementController extends ModuleAdminController
             }
         }
         
-        // Process room status updates
+        // process room status updates
         if (Tools::isSubmit('update_room_status')) {
             $id_room = (int)Tools::getValue('id_room');
             $status = Tools::getValue('status');
@@ -475,7 +475,7 @@ class AdminHousekeepingManagementController extends ModuleAdminController
     {
         $roomTypes = array();
         
-        // Get room types from product table where hotel room is set
+        // get room types from product table where hotel room is set
         $sql = 'SELECT p.id_product, pl.name 
                 FROM '._DB_PREFIX_.'product p
                 LEFT JOIN '._DB_PREFIX_.'product_lang pl ON (p.id_product = pl.id_product AND pl.id_lang = '.(int)$this->context->language->id.')
@@ -487,7 +487,7 @@ class AdminHousekeepingManagementController extends ModuleAdminController
         $result = Db::getInstance()->executeS($sql);
         
         if ($result) {
-            // Add "All Room Types" option
+            // add "All Room Types" option
             $roomTypes[] = array(
                 'id_option' => '',
                 'name' => $this->l('All Room Types')

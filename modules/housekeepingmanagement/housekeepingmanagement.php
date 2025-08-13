@@ -219,7 +219,6 @@ class HousekeepingManagement extends Module
 
         $mainTab->add();
 
-        // Position after Hotel Reservation System (assuming it's at position 5)
         $mainTab->updatePosition(0, 6);
         
         // create sub-tab for SOP Management

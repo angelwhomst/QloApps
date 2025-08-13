@@ -33,7 +33,7 @@ class AdminSOPManagementController extends ModuleAdminController
             )
         );
 
-        // Add the deleted = 0 filter to only show active records
+        //  filter to only show active records
         $this->_where = 'AND a.`deleted` = 0';
 
         $this->fields_list = array(
@@ -70,7 +70,7 @@ class AdminSOPManagementController extends ModuleAdminController
     }
 
     /**
-     * Display room type name
+     * display room type name
      */
     public function displayRoomType($roomTypeId, $row)
     {
@@ -87,14 +87,14 @@ class AdminSOPManagementController extends ModuleAdminController
     }
 
     /**
-     * Override delete method to implement soft delete
+     * override delete method to implement soft delete
      */
     public function processDelete()
     {
         if (Validate::isLoadedObject($object = $this->loadObject())) {
             // Implement soft delete instead of hard delete
             $object->deleted = 1;
-            $object->active = 0; // Also deactivate it
+            $object->active = 0; // a;so deactivate it
             
             if ($object->update()) {
                 $this->redirect_after = self::$currentIndex.'&conf=1&token='.$this->token;
@@ -109,7 +109,7 @@ class AdminSOPManagementController extends ModuleAdminController
     }
     
     /**
-     * Implement bulk soft delete
+     * implement bulk soft delete
      */
     public function processBulkDelete()
     {
@@ -138,7 +138,7 @@ class AdminSOPManagementController extends ModuleAdminController
     }
 
     /**
-     * Render form for adding/editing SOPs
+     * render form for adding/editing SOPs
      */
     public function renderForm()
     {
@@ -316,7 +316,7 @@ class AdminSOPManagementController extends ModuleAdminController
     }
 
     /**
-     * Render SOP details view
+     * render SOP details view
      */
     public function renderView()
     {
@@ -337,7 +337,7 @@ class AdminSOPManagementController extends ModuleAdminController
         $sopStepModel = new SOPStepModel();
         $steps = $sopStepModel->getStepsBySOP($id_sop);
         
-        // Get room type name
+        // get room type name
         $roomTypeName = $this->l('All Room Types');
         if (!empty($sopModel->room_type)) {
             $objProduct = new Product($sopModel->room_type, false, $this->context->language->id);
@@ -346,7 +346,7 @@ class AdminSOPManagementController extends ModuleAdminController
             }
         }
         
-        // Prepare data for view
+        // preepare data for view
         $this->context->smarty->assign(array(
             'sop' => array(
                 'id_sop' => $sopModel->id,
@@ -365,19 +365,19 @@ class AdminSOPManagementController extends ModuleAdminController
     }
 
     /**
-     * Get room type options for dropdown
+     * get room type options for dropdown
      */
     protected function getRoomTypeOptions()
     {
         $roomTypes = array();
         
-        // Add "All Room Types" option
+        // afd "All Room Types" option
         $roomTypes[] = array(
             'id_option' => '',
             'name' => $this->l('All Room Types')
         );
         
-        // Get room types from product table where hotel room is set
+        // get room types from product table where hotel room is set
         $sql = 'SELECT p.id_product, pl.name 
                 FROM '._DB_PREFIX_.'product p
                 LEFT JOIN '._DB_PREFIX_.'product_lang pl ON (p.id_product = pl.id_product AND pl.id_lang = '.(int)$this->context->language->id.')
