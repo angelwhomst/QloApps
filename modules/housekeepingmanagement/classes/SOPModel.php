@@ -80,7 +80,7 @@ class SOPModel extends ObjectModel
      * @param bool $includeDeleted Whether to include soft-deleted SOPs
      * @return array|false SOP with steps or false if not found
      */
-    public static function getSOPWithSteps($id_sopm $includeDeleted = false)
+    public static function getSOPWithSteps($id_sop, $includeDeleted = false)
     {
         $id_sop = (int)$id_sop;
         if (!$id_sop) {

@@ -3,7 +3,7 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-class AdminHousekeepingManagementController extends ModuleAdminController
+class AdminSOPManagementController extends ModuleAdminController
 {
     public function __construct()
     {
@@ -60,12 +60,6 @@ class AdminHousekeepingManagementController extends ModuleAdminController
                 'type' => 'datetime'
             )
         );
-
-        // add tabs 
-        $this->tabs = array(
-            'SOPs' => $this->l('Standard Operating Procedures'),
-            'RoomStatus' => $this->l('Room Status')
-        );
     }
 
     /**
@@ -73,38 +67,13 @@ class AdminHousekeepingManagementController extends ModuleAdminController
      */
     public function renderList()
     {
-        //add button to create new SOP
         $this->page_header_toolbar_btn['new_sop'] = array(
             'href' => self::$currentIndex.'&addSOPModel&token='.$this->token,
             'desc' => $this->l('Add New SOP'),
             'icon' => 'process-icon-new'
         );
-
-        //get SOPs from db
-        $sops = SOPModel::getSOPs(null, null, 0, 0, false);
-
-        //set template
-        $this->context->smarty->assign(array(
-            'sops' => $sops,
-            'link' => $this->context->link
-        ));
-
-        return parent::renderList();
-    }
-
-    /**
-     * process bulk actions
-     */
-    public function processBulkDelete()
-    {
-        if (is_array($this->boxes) && !empty($this->boxes)) {
-            foreach ($this->boxes as $id_sop) {
-                $sop = new SOPModel((int)$id_sop);
-                $sop->delete();
-            }
-        }
         
-        return parent::processBulkDelete();
+        return parent::renderList();
     }
 
     /**
@@ -112,7 +81,7 @@ class AdminHousekeepingManagementController extends ModuleAdminController
      */
     public function renderForm()
     {
-        // get room types
+        // Get room types from hotelreservationsystem module
         $roomTypeOptions = array();
         $objRoomType = new HotelRoomType();
         $roomTypes = $objRoomType->getAllRoomTypes();
@@ -180,7 +149,7 @@ class AdminHousekeepingManagementController extends ModuleAdminController
                 'title' => $this->l('Save')
             )
         );
-        
+
         // add steps fields (dynamic)
         $this->fields_form['input'][] = array(
             'type' => 'html',
@@ -192,19 +161,19 @@ class AdminHousekeepingManagementController extends ModuleAdminController
     }
 
     /**
-     * generate html for steps section
+     * generate HTML for steps section
      */
     protected function getStepsHtml()
     {
         $steps = array();
         
-        // if editing, get existing steps
+        // If editing, get existing steps
         if (Tools::isSubmit('id_sop')) {
             $id_sop = (int)Tools::getValue('id_sop');
             $steps = SOPStepModel::getStepsBySOP($id_sop);
         }
         
-        // fefault empty step if none exist
+        // Default empty step if none exist
         if (empty($steps)) {
             $steps = array(array('step_order' => 1, 'step_description' => ''));
         }
@@ -230,7 +199,7 @@ class AdminHousekeepingManagementController extends ModuleAdminController
             $active = (int)Tools::getValue('active', 1);
             $steps = Tools::getValue('step');
             
-            //validate form data
+            // validate form data
             if (empty($title)) {
                 $this->errors[] = $this->l('Title is required');
             }
@@ -264,7 +233,7 @@ class AdminHousekeepingManagementController extends ModuleAdminController
                 }
                 
                 if ($success) {
-                    //save steps
+                    // save steps
                     SOPStepModel::deleteStepsBySOP($sop->id_sop);
                     
                     foreach ($steps as $order => $description) {
@@ -294,141 +263,47 @@ class AdminHousekeepingManagementController extends ModuleAdminController
             }
         }
         
-        // Process room status updates
-        if (Tools::isSubmit('update_room_status')) {
-            $id_room = (int)Tools::getValue('id_room');
-            $status = Tools::getValue('status');
-            
-            if (RoomStatusModel::updateRoomStatus($id_room, $status, $this->context->employee->id)) {
-                $this->confirmations[] = $this->l('Room status updated successfully');
-            } else {
-                $this->errors[] = $this->l('An error occurred while updating room status');
-            }
-        }
-        
         return parent::postProcess();
     }
 
     /**
-     * render view for room status management
+     * render view of a SOP
      */
-    public function displayRoomStatusTab()
+    public function renderView()
     {
-        // get all hotel rooms
-        $objHotelRoomInfo = new HotelRoomInformation();
-        $rooms = $objHotelRoomInfo->getAllHotelRooms();
-
-        // get status for all rooms
-        $roomStatuses = RoomStatusModel::getRoomsByStatus();
-
-        // map room statuses to rooms
-        $roomsWithStatus = array();
-
-        foreach ($rooms as $room) {
-            $roomStatus = RoomStatusModel::STATUS_NOT_CLEANED;
-
-            // check if room has a ststus
-            foreach ($roomStatuses as $status) {
-                if ($status['id_room'] == $room['id']) {
-                    $roomStatus = $status['status'];
-                    break;
-                }
-            }
-
-            $roomsWithStatus[] = array(
-                'id' => $room['id'],
-                'room_num' => $room['room_num'],
-                'room_type' => $room['room_type'],
-                'hotel_name' => $room['hotel_name'],
-                'status' => $roomStatus
-            );
-        }
-
-        // get summary count 
-        $summary = RoomStatusModel::getRoomStatusSummary();
-
-        $this->context->smarty->assign(array(
-            'rooms' => $roomsWithStatus,
-            'summary' => $summary,
-            'cleaned_status' => RoomStatusModel::STATUS_CLEANED,
-            'not_cleaned_status' => RoomStatusModel::STATUS_NOT_CLEANED,
-            'failed_inspection_status' => RoomStatusModel::STATUS_FAILED_INSPECTION,
-            'current_url' => $this->context->link->getAdminLink('AdminHousekeepingManagement')
-        ));
-
-        return $this->context->smarty->fetch(_PS_MODULE_DIR_.'housekeepingmanagement/views/templates/admin/room_status.tpl');
-    }
-
-    /**
-     * AJAX process to update room status
-     */
-    public function ajaxProcessUpdateRoomStatus()
-    {
-        $response = array('success' => false);
-
-        if (Tools::isSubmit('id_room') && Tools::isSubmit('status')) {
-            $id_room = (int)Tools::getValue('id_room');
-            $status = Tools::getValue('status');
-
-            if (RoomStatusModel::updateRoomStatus($id_room, $status, $this->context->employee->id)) {
-                $response['success'] = true;
-                $response['message'] = $this->l('Room status updated successfully');
-
-                // get updated summary
-                $response['summary'] = RoomStatusModel::getRoomStatusSummary();
-            } else {
-                $response['message'] = $this->l('An error occurred while updating room status');
-            }
-        } else {
-            $response['message'] = $this->l('Invalid parameters');
+        if (!($id_sop = (int)Tools::getValue('id_sop')) || !Validate::isLoadedObject($sop = new SOPModel($id_sop))) {
+            $this->errors[] = $this->l('SOP not found');
+            return $this->renderList();
         }
         
-        die(json_encode($response));
-    }
-
-    /**
-     * display content based on active tab
-     */
-    public function initContent()
-    {
-        parent::initContent();
-
-        $this->content = '';
-
-        // determine which tab is active
-        $activeTab = 'SOPs';
-        if (Tools::getValue('tab') && isset($this->tabs[Tools::getValue('tab')])) {
-            $activeTab = Tools::getValue('tab');
-        }
-
-        // generate content based on active tab
-        if ($activeTab === 'RoomStatus') {
-            $this->content .= $this->displayRoomStatusTab();
-        } else {
-            // default to SOPs tab
-            if (Tools::isSubmit('addSOPModel') || Tools::isSubmit('updateSOPModel')) {
-                $this->content .= $this->renderForm();
-            } else {
-                $this->content .= $this->renderList();
-            }
-        }
-
-        //add tab nav
-        $tabLinks = array();
-        foreach ($this->tabs as $tabId => $tabLabel) {
-            $tabLinks[] = array(
-                'id' => $tabId,
-                'label' => $tabLabel,
-                'active' => ($activeTab === $tabId),
-                'url' => $this->context->link->getAdminLink('AdminHousekeepingManagement').'&tab='.$tabId
-            );
-        }
+        $steps = SOPStepModel::getStepsBySOP($id_sop);
         
         $this->context->smarty->assign(array(
-            'content' => $this->content,
-            'tabs' => $tabLinks
+            'sop' => array(
+                'id_sop' => $sop->id_sop,
+                'title' => $sop->title,
+                'description' => $sop->description,
+                'room_type' => $sop->room_type,
+                'active' => $sop->active,
+                'date_add' => $sop->date_add,
+                'date_upd' => $sop->date_upd
+            ),
+            'steps' => $steps,
+            'employee_name' => $this->getEmployeeName($sop->id_employee)
         ));
         
-        $this->context->smarty->assign('content', $this->context->smarty->fetch(_PS_MODULE_DIR_.'housekeepingmanagement/views/templates/admin/tabs.tpl'));
+        return $this->context->smarty->fetch(_PS_MODULE_DIR_.'housekeepingmanagement/views/templates/admin/sop_view.tpl');
+    }
+    
+    /**
+     * get employee name by ID
+     */
+    protected function getEmployeeName($id_employee)
+    {
+        $employee = new Employee($id_employee);
+        if (Validate::isLoadedObject($employee)) {
+            return $employee->firstname.' '.$employee->lastname;
+        }
+        return '';
     }
 }

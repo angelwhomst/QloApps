@@ -1,5 +1,4 @@
 <?php
-<?php
 if (!defined('_PS_VERSION_')) {
     exit;
 }
@@ -12,6 +11,7 @@ class RoomStatusModel extends ObjectModel
     public $id_employee;
     public $date_upd;
 
+    // room status constants
     const STATUS_CLEANED = 'CLEANED';
     const STATUS_NOT_CLEANED = 'NOT_CLEANED';
     const STATUS_FAILED_INSPECTION = 'FAILED_INSPECTION';
@@ -25,86 +25,114 @@ class RoomStatusModel extends ObjectModel
         'fields' => array(
             'id_room' => array('type' => self::TYPE_INT, 'validate' => 'isUnsignedId', 'required' => true),
             'status' => array('type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true),
-            'id_employee' => array('type' => self::TYPE_INT, 'validate' => 'isUnsignedId'),
+            'id_employee' => array('type' => self::TYPE_INT, 'validate' => 'isUnsignedId', 'required' => true),
             'date_upd' => array('type' => self::TYPE_DATE, 'validate' => 'isDate', 'required' => true),
         ),
     );
 
     /**
-     * GET ROOM STATUS with details 
+     * get room status summary counts
      * 
-     * @param int|null $id_room Room ID (optional)
-     * @param string|null $status Filter by status (optional)
-     * @return array Room status records
-     */
-    public static function getRoomStatuses($id_room = null, $status = null)
-    {
-        $sql = new DbQuery();
-        $sql->select('rs.*, r.room_num, r.id_hotel, r.id_status, rt.room_type, e.firstname, e.lastname');
-        $sql->from('housekeeping_room_status', 'rs');
-        $sql->leftJoin('htl_rooms_info', 'r', 'r.id = rs.id_room');
-        $sql->leftJoin('htl_room_type', 'rt', 'rt.id = r.id_product');
-        $sql->leftJoin('employee', 'e', 'e.id_employee = rs.id_employee');
-
-        if ($id_room) {
-            $sql->where('rs.id_room = '.(int)$id_room);
-        }
-        
-        if ($status) {
-            $sql->where('rs.status = "'.pSQL($status).'"');
-        }
-        
-        $sql->orderBy('rs.date_upd DESC');
-        
-        return Db::getInstance()->executeS($sql);
-    }
-
-    /**
-     * GET SUMMARY OF ROOM STATUSES
-     * 
-     * @return array Summary counts
+     * @return array summary counts
      */
     public static function getRoomStatusSummary()
     {
+        // get total room count from hotel room information
+        $objRoomInfo = new HotelRoomInformation();
+        $totalRooms = count($objRoomInfo->getAllHotelRooms());
+
+        // initialize summary
         $summary = array(
-            'total' => 0,
+            'total' => $totalRooms,
             'cleaned' => 0,
             'not_cleaned' => 0,
-            'failed_inspection' => 0
+            'failed_inspection' => 0,
         );
-        
-        // GET TOTAL ROOMS
+
+        // get status counts
         $sql = new DbQuery();
-        $sql->select('COUNT(*)');
-        $sql->from('htl_rooms_info');
-        $summary['total'] = (int)Db::getInstance()->getValue($sql);
+        $sql->select('status, COUNT(*) as count');
+        $sql->from(self::$definition['table']);
+        $sql->groupBy('status');
         
-        // GET CLEANED ROOMS
-        $sql = new DbQuery();
-        $sql->select('COUNT(*)');
-        $sql->from('housekeeping_room_status');
-        $sql->where('status = "'.self::STATUS_CLEANED.'"');
-        $summary['cleaned'] = (int)Db::getInstance()->getValue($sql);
+        $results = Db::getInstance()->executeS($sql);
         
-        // GET NOT CLEANED ROOMS
-        $sql = new DbQuery();
-        $sql->select('COUNT(*)');
-        $sql->from('housekeeping_room_status');
-        $sql->where('status = "'.self::STATUS_NOT_CLEANED.'"');
-        $summary['not_cleaned'] = (int)Db::getInstance()->getValue($sql);
+        if ($results && is_array($results)) {
+            foreach ($results as $result) {
+                switch ($result['status']) {
+                    case self::STATUS_CLEANED:
+                        $summary['cleaned'] = (int)$result['count'];
+                        break;
+                    case self::STATUS_NOT_CLEANED:
+                        $summary['not_cleaned'] = (int)$result['count'];
+                        break;
+                    case self::STATUS_FAILED_INSPECTION:
+                        $summary['failed_inspection'] = (int)$result['count'];
+                        break;
+                }
+            }
+        }
         
-        // GET FAILED INSPECTION ROOMS
-        $sql = new DbQuery();
-        $sql->select('COUNT(*)');
-        $sql->from('housekeeping_room_status');
-        $sql->where('status = "'.self::STATUS_FAILED_INSPECTION.'"');
-        $summary['failed_inspection'] = (int)Db::getInstance()->getValue($sql);
+        // for rooms without a status record, consider them as not cleaned
+        $summary['not_cleaned'] += ($totalRooms - ($summary['cleaned'] + $summary['not_cleaned'] + $summary['failed_inspection']));
         
         return $summary;
     }
 
     /**
-     * UPDATE ROOM STATUS
+     * get rooms by status
+     * 
+     * @param string $status Optional status filter
+     * @return array Array of rooms with status
+     */
+    public static function getRoomsByStatus($status = null)
+    {
+        // get all room statuses
+        $sql = new DbQuery();
+        $sql->select('rs.*, e.firstname, e.lastname');
+        $sql->from(self::$definition['table'], 'rs');
+        $sql->leftJoin('employee', 'e'. 'e.id_employee = rs.id_employee');
+
+        if ($status) {
+            $sql->where('rs.status = "'.pSQL($status).'"');
+        }
+
+        $sql->orderBy('rs.date_upd DESC');
+
+        $results = Db::getInstance()->executeS($sql);
+
+        if ($results && is_array($results)) {
+            foreach ($results as &$room) {
+                if (isset($room['firstname']) && isset($room['lastname'])) {
+                    $room['employee_name'] = $room['firstname'].' '.$room['lastname'];
+                } else {
+                    $room['employee_name'] = null;
+                }
+                unset($room['firstname'], $room['lastname']);
+            }
+        }
+        
+        return $results ? $results : array();
+    }
+
+    /**
+     * get the statys ID for a room
+     * 
+     * @param int $id_room Room ID
+     * @return int|dalse Status id or false if not found
+     */
+    public static function getRoomStatusId($id_room)
+    {
+        $sql = new DbQuery();
+        $sql->select('id_room_status');
+        $sql->from(self::$definition['table']);
+        $sql->where('id_room = '.(int)$id_room);
+        
+        return Db::getInstance()->getValue($sql);
+    }
+
+    /**
+     * update room status
      * 
      * @param int $id_room Room ID
      * @param string $status New status
@@ -147,23 +175,165 @@ class RoomStatusModel extends ObjectModel
     }
 
     /**
-     * GET ROOM STATUS ID BY ROOM ID
+     * get room info by id
      * 
      * @param int $id_room Room ID
-     * @return int|false Room status ID or false if not found
+     * @return array|false Room info or false
      */
-    public static function getRoomStatusId($id_room)
+    public static function getRoomInfo($id_room)
     {
-        $sql = new DbQuery();
-        $sql->select('id_room_status');
-        $sql->from('housekeeping_room_status');
-        $sql->where('id_room = '.(int)$id_room);
+        $objHotelRoomInfo = new HotelRoomInformation($id_room);
         
-        return Db::getInstance()->getValue($sql);
+        if (Validate::isLoadedObject($objHotelRoomInfo)) {
+            $objHotelBranch = new HotelBranchInformation($objHotelRoomInfo->id_hotel);
+            $objRoomType = new HotelRoomType();
+            $roomTypeInfo = $objRoomType->getRoomTypeInfoByIdProduct($objHotelRoomInfo->id_product);
+            
+            return array(
+                'id' => $objHotelRoomInfo->id,
+                'room_num' => $objHotelRoomInfo->room_num,
+                'id_product' => $objHotelRoomInfo->id_product,
+                'id_hotel' => $objHotelRoomInfo->id_hotel,
+                'hotel_name' => $objHotelBranch->hotel_name,
+                'room_type' => $roomTypeInfo ? $roomTypeInfo['room_type'] : '',
+                'floor' => $objHotelRoomInfo->floor,
+                'comment' => $objHotelRoomInfo->comment,
+                'status' => $objHotelRoomInfo->id_status
+            );
+        }
+        
+        return false;
     }
-    
+
     /**
-     * add method override to set update date
+     * get all rooms with their status
+     * 
+     * @return array Array of rooms with status
+     */
+    public static function getAllRoomsWithStatus()
+    {
+        // getall hotel roms 
+        $objHotelRoomInfo = new HotelRoomInformation();
+        $rooms = $objHotelRoomInfo->getAllHotelRooms();
+        
+        // get all room statuses
+        $roomStatuses = self::getRoomsByStatus();
+        
+        // ceate a map of room ID to status
+        $statusMap = array();
+        foreach ($roomStatuses as $status) {
+            $statusMap[$status['id_room']] = $status;
+        }
+        
+        // merge room info with status
+        foreach ($rooms as &$room) {
+            if (isset($statusMap[$room['id']])) {
+                $room['status'] = $statusMap[$room['id']]['status'];
+                $room['employee_name'] = $statusMap[$room['id']]['employee_name'];
+                $room['date_upd'] = $statusMap[$room['id']]['date_upd'];
+            } else {
+                $room['status'] = self::STATUS_NOT_CLEANED;
+                $room['employee_name'] = null;
+                $room['date_upd'] = null;
+            }
+        }
+        
+        return $rooms;
+    }
+
+    /**
+     * check if a room needs cleaning based on bookings
+     * 
+     * @param int $id_room Room ID
+     * @return bool True if room needs cleaning
+     */
+    public static function checkIfRoomNeedsCleaning($id_room)
+    {
+        // get recent booking details for this room
+        $objBookingDetail = new HotelBookingDetail();
+        $recentBookings = $objBookingDetail->getBookingDataByRoomId($id_room, date('Y-m-d', strtotime('-7 days')));
+
+        // if ther were recent bookings with checkout date in the past, room needs cleaning
+        if ($recentBookings && is_array($recentBookings)) {
+            foreach ($recentBookings as $booking) {
+                $checkoutDate = strtotime($booking['date_to']);
+                $now = time();
+                
+                if ($checkoutDate < $now) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * get rooms that need cleaning
+     * 
+     * @return array Array of rooms that need cleaning
+     */
+    public static function getRoomsThatNeedCleaning()
+    {
+        $rooms = array();
+        
+        // get all rooms
+        $objHotelRoomInfo = new HotelRoomInformation();
+        $allRooms = $objHotelRoomInfo->getAllHotelRooms();
+        
+        // gett room statuses
+        $roomStatuses = self::getRoomsByStatus();
+        $statusMap = array();
+        foreach ($roomStatuses as $status) {
+            $statusMap[$status['id_room']] = $status['status'];
+        }
+        
+        // check each room
+        foreach ($allRooms as $room) {
+            // if  room is not marked as cleaned and has recent checkouts
+            if ((!isset($statusMap[$room['id']]) || $statusMap[$room['id']] !== self::STATUS_CLEANED) 
+                && self::checkIfRoomNeedsCleaning($room['id'])) {
+                $rooms[] = $room;
+            }
+        }
+        
+        return $rooms;
+    }
+
+    /**
+     * get rooms where cleaning is overdue
+     * 
+     * @param int $days Number of days overdue
+     * @return array Array of rooms with overdue cleaning
+     */
+    public static function getOverdueCleaningRooms($days = 1)
+    {
+        $rooms = array();
+        $cutoffDate = date('Y-m-d H:i:s', strtotime('-'.$days.' days'));
+        
+        // get all rooms that are not cleaned
+        $sql = new DbQuery();
+        $sql->select('rs.*');
+        $sql->from(self::$definition['table'], 'rs');
+        $sql->where('rs.status = "'.self::STATUS_NOT_CLEANED.'"');
+        $sql->where('rs.date_upd < "'.pSQL($cutoffDate).'"');
+        
+        $results = Db::getInstance()->executeS($sql);
+        
+        if ($results && is_array($results)) {
+            foreach ($results as $result) {
+                $roomInfo = self::getRoomInfo($result['id_room']);
+                if ($roomInfo) {
+                    $rooms[] = array_merge($roomInfo, $result);
+                }
+            }
+        }
+        
+        return $rooms;
+    }
+
+    /**
+     * override add method to set creation date
      */
     public function add($auto_date = true, $null_values = false)
     {
@@ -173,9 +343,9 @@ class RoomStatusModel extends ObjectModel
         
         return parent::add($auto_date, $null_values);
     }
-
+    
     /**
-     * update method override to set update date
+     * override update method to set update date
      */
     public function update($null_values = false)
     {
