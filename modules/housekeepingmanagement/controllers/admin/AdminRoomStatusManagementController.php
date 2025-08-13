@@ -228,7 +228,7 @@ class AdminRoomStatusManagementController extends ModuleAdminController
     {
         parent::initToolbar();
         
-        // Remove the Add New button since we don't directly create statuses
+        // remove the Add New button since we don't directly create statuses
         unset($this->toolbar_btn['new']);
         
         // Add summary button
@@ -534,30 +534,33 @@ class AdminRoomStatusManagementController extends ModuleAdminController
             $id_room = (int)Tools::getValue('id_room');
             $status = Tools::getValue('status');
             $notes = Tools::getValue('notes');
-            
+
             // validate status
             $valid_statuses = array(
                 RoomStatusModel::STATUS_CLEANED,
                 RoomStatusModel::STATUS_NOT_CLEANED,
                 RoomStatusModel::STATUS_FAILED_INSPECTION
             );
-            
+
             if (!in_array($status, $valid_statuses)) {
                 $this->errors[] = $this->l('Invalid status value');
             }
-            
+
             if (empty($this->errors)) {
+                // Always save the current employee as the updater
+                $employee_id = $this->context->employee->id;
+
                 // update room status
                 $result = RoomStatusModel::updateRoomStatus(
                     $id_room,
                     $status,
-                    $this->context->employee->id,
+                    $employee_id, // ensure this is always set
                     $notes
                 );
-                
+
                 if ($result) {
                     $this->confirmations[] = $this->l('Room status updated successfully');
-                    
+
                     // redirect back to list
                     Tools::redirectAdmin(self::$currentIndex.'&conf=4&token='.$this->token);
                 } else {
@@ -565,14 +568,14 @@ class AdminRoomStatusManagementController extends ModuleAdminController
                 }
             }
         }
-        
+
         // handle AJAX status update
         if (Tools::isSubmit('ajax')) {
             if (Tools::getValue('action') == 'updateRoomStatus') {
                 $this->ajaxProcessUpdateRoomStatus();
             }
         }
-        
+
         return parent::postProcess();
     }
 

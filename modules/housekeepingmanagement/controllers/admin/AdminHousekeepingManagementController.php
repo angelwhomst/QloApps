@@ -309,19 +309,19 @@ class AdminHousekeepingManagementController extends ModuleAdminController
             
             // if no errors, proceed with save
             if (empty($this->errors)) {
-                // Create or update SOP
+                // create or update SOP
                 $sopModel = new SOPModel($id_sop);
                 $sopModel->title = Tools::getValue('title');
                 $sopModel->description = Tools::getValue('description');
                 $sopModel->room_type = Tools::getValue('room_type');
                 $sopModel->active = (int)Tools::getValue('active');
-                $sopModel->deleted = 0; // Ensure it's not deleted
-                
-                // set timestamps
+                $sopModel->deleted = 0; //  it's not deleted
+
+                // Always set id_employee for new records
                 if (!$id_sop) {
                     $sopModel->date_add = date('Y-m-d H:i:s');
-                    $sopModel->id_employee = $this->context->employee->id;
                 }
+                $sopModel->id_employee = $this->context->employee->id;
                 $sopModel->date_upd = date('Y-m-d H:i:s');
                 
                 // save SOP

@@ -228,7 +228,7 @@ class AdminSOPManagementController extends ModuleAdminController
             $steps = SOPStepModel::getStepsBySOP($id_sop);
         }
         
-        // Default empty step if none exist
+        // default empty step if none exist
         if (empty($steps)) {
             $steps = array(array('step_order' => 1, 'step_description' => ''));
         }
@@ -274,10 +274,21 @@ class AdminSOPManagementController extends ModuleAdminController
                 } else {
                     $sop = new SOPModel();
                     $sop->date_add = date('Y-m-d H:i:s');
-                    $sop->id_employee = $this->context->employee->id;
-                    $sop->deleted = 0; // Ensure deleted flag is set to 0 for new records
+                    $sop->deleted = 0; // deleted flag is set to 0 for new records
                 }
-                
+
+                $sop->id_employee = (int)$this->context->employee->id;
+                // error_log('Setting employee ID to: ' . (int)$this->context->employee->id);
+                if ($sop->id_employee <= 0) {
+                    // fallback to the first available admin
+                    $employees = Employee::getEmployees(true);
+                    if (!empty($employees) && isset($employees[0]['id_employee'])) {
+                        $sop->id_employee = (int)$employees[0]['id_employee'];
+                    } else {
+                        $sop->id_employee = 1; // fallback to ID 1 if no other option
+                    }
+                }
+
                 $sop->title = $title;
                 $sop->description = $description;
                 $sop->room_type = $room_type;
@@ -286,9 +297,7 @@ class AdminSOPManagementController extends ModuleAdminController
                 
                 if ($sop->save()) {
                     // delete existing steps
-                    if ($id_sop) {
-                        SOPStepModel::deleteStepsBySOP($id_sop);
-                    }
+                    SOPStepModel::softDeleteStepsBySOP($sop->id);
                     
                     // save steps
                     foreach ($steps as $index => $step) {
@@ -297,6 +306,7 @@ class AdminSOPManagementController extends ModuleAdminController
                             $sopStep->id_sop = $sop->id;
                             $sopStep->step_order = $index + 1;
                             $sopStep->step_description = $step;
+                            $sopStep->deleted = 0;
                             $sopStep->save();
                         }
                     }
@@ -345,6 +355,15 @@ class AdminSOPManagementController extends ModuleAdminController
                 $roomTypeName = $objProduct->name;
             }
         }
+
+        // fetch employee name
+        $employee_name = '';
+        if ($sopModel->id_employee) {
+            $employee = new Employee((int)$sopModel->id_employee);
+            if (Validate::isLoadedObject($employee)) {
+                $employee_name = $employee->firstname . ' ' . $employee->lastname;
+            }
+        }
         
         // preepare data for view
         $this->context->smarty->assign(array(
@@ -358,7 +377,8 @@ class AdminSOPManagementController extends ModuleAdminController
                 'date_upd' => $sopModel->date_upd
             ),
             'steps' => $steps,
-            'link' => $this->context->link
+            'link' => $this->context->link,
+            'employee_name' => $employee_name,
         ));
         
         return $this->context->smarty->fetch(_PS_MODULE_DIR_.'housekeepingmanagement/views/templates/admin/sop_view.tpl');

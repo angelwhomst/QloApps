@@ -9,6 +9,7 @@ class SOPStepModel extends ObjectModel
     public $id_sop;
     public $step_order;
     public $step_description;
+    public $deleted;
 
     /**
      * @see ObjectModel::$definition
@@ -20,6 +21,7 @@ class SOPStepModel extends ObjectModel
             'id_sop' => array('type' => self::TYPE_INT, 'validate' => 'isUnsignedId', 'required' => true),
             'step_order' => array('type' => self::TYPE_INT, 'validate' => 'isUnsignedInt', 'required' => true),
             'step_description' => array('type' => self::TYPE_STRING, 'validate' => 'isCleanHtml', 'required' => true),
+            'deleted' => array('type' => self::TYPE_BOOL, 'validate' => 'isBool', 'required' => false, 'default' => 0),
         ),
     );
 
@@ -36,10 +38,18 @@ class SOPStepModel extends ObjectModel
         $sql = new DbQuery();
         $sql->select('*');
         $sql->from('housekeeping_sop_step');
-        $sql->where('id_sop = '.$id_sop);
+        $sql->where('id_sop = '.$id_sop.' AND deleted = 0');
         $sql->orderBy('step_order ASC');
         
         return Db::getInstance()->executeS($sql);
+    }
+
+    public static function softDeleteStepsBySOP($id_sop)
+    {
+        $id_sop = (int)$id_sop;
+        return Db::getInstance()->execute(
+            'UPDATE `'._DB_PREFIX_.'housekeeping_sop_step` SET `deleted` = 1 WHERE `id_sop` = '.$id_sop
+        );
     }
 
     /**
@@ -82,6 +92,7 @@ class SOPStepModel extends ObjectModel
             $step->id_sop = $id_sop;
             $step->step_order = $order + 1; // start from 1
             $step->step_description = $description;
+            $step->deleted = 0;
             $success &= $step->add();
         }
         

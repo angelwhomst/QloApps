@@ -91,4 +91,36 @@ class SOPModel extends ObjectModel
         
         return $result ? $result : array();
     }
+
+    /**
+     * eoverride add method to make sure employee ID is set
+     */
+    public function add($autodate = true, $null_values = false)
+    {
+        if (empty($this->id_employee) && Context::getContext()->employee) {
+            $this->id_employee = (int)Context::getContext()->employee->id;
+        }
+        
+        if (empty($this->id_employee)) {
+            $this->id_employee = 1; // default to admin if still empty
+        }
+        
+        return parent::add($autodate, $null_values);
+    }
+    
+    /**
+     * overrride update method to make sure employee ID is maintained
+     */
+    public function update($null_values = false)
+    {
+        if (empty($this->id_employee) && Context::getContext()->employee) {
+            $this->id_employee = (int)Context::getContext()->employee->id;
+        }
+        
+        if (empty($this->id_employee)) {
+            $this->id_employee = 1; // default to admin if still empty
+        }
+        
+        return parent::update($null_values);
+    }
 }
