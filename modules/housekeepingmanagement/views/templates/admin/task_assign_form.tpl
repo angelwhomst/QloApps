@@ -103,19 +103,18 @@
             <!-- Room Number Multi-Select -->
             <label for="room_number">Room Number</label>
             <select id="room_number" name="room_number[]" multiple="multiple" style="width: 100%;">
-                <option value="101">101</option>
-                <option value="102">102</option>
-                <option value="103">103</option>
-                <option value="104">104</option>
+                {foreach from=$roomList item=room}
+                    <option value="{$room.id_room}">{$room.room_number}</option>
+                {/foreach}
             </select>
 
             <!-- Assign Staff Dropdown -->
             <label for="assigned_staff">Assign Staff</label>
             <select id="assigned_staff" name="assigned_staff">
                 <option value="">-- Select Staff --</option>
-                <option value="John Doe">John Doe</option>
-                <option value="Jane Smith">Jane Smith</option>
-                <option value="Mark Lee">Mark Lee</option>
+                {foreach from=$staffList item=staff}
+                    <option value="{$staff.id_employee}">{$staff.name}</option>
+                {/foreach}
             </select>
 
             <!-- Priority Dropdown -->

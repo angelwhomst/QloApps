@@ -92,7 +92,7 @@ class HousekeepingManagement extends Module
         $sql[] = 'CREATE TABLE IF NOT EXISTS `'._DB_PREFIX_.'housekeeping_room_status` (
             `id_room_status` int(11) NOT NULL AUTO_INCREMENT,
             `id_room` int(11) NOT NULL,
-            `status` enum("Not Cleaned","Cleaned","Failed Inspection", "To Be Inspected", "Unassigned") NOT NULL DEFAULT "Unassigned",
+            `status` enum("CLEANED","NOT_CLEANED","FAILED_INSPECTION") NOT NULL DEFAULT "NOT_CLEANED",
             `id_employee` int(11) DEFAULT NULL,
             `date_upd` datetime NOT NULL,
             PRIMARY KEY (`id_room_status`),
@@ -108,6 +108,7 @@ class HousekeepingManagement extends Module
             `deadline` datetime NOT NULL,
             `priority` enum("High","Medium","Low") NOT NULL DEFAULT "Low",
             `special_notes` text DEFAULT NULL,
+            `status` enum("Not Cleaned","Cleaned","Failed Inspection", "To Be Inspected", "Unassigned") NOT NULL DEFAULT "Unassigned",
             `date_add` datetime NOT NULL,
             `date_upd` datetime NOT NULL,
             PRIMARY KEY (`id_task`),

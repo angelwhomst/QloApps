@@ -122,9 +122,13 @@ class TaskAssignmentModel extends ObjectModel
         $sql->from('housekeeping_task_assignment');
 
         // Apply filters
+        $allowedColumns = ['id_task','id_room','id_employee','status','priority', 'deadline'];
         foreach ($filters as $key => $value) {
-            $sql->where(pSQL($key) . ' = "' . pSQL($value) . '"');
+            if (in_array($key, $allowedColumns)) {
+                $sql->where(pSQL($key) . ' = "' . pSQL($value) . '"');
+            }
         }
+
 
         return Db::getInstance()->executeS($sql);
     }

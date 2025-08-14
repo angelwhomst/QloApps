@@ -3,6 +3,9 @@ if (!defined('_PS_VERSION_')) {
     exit; 
 }
 
+require_once(_PS_MODULE_DIR_ . 'housekeepingmanagement/classes/TaskAssignmentModel.php');
+
+
 /**
  * SupervisorTasksController
  * 
@@ -73,16 +76,26 @@ class SupervisorTasksController extends ModuleAdminController
     public function initContent()
     {
         if (Tools::isSubmit('addnewtask')) {
-            // Sample data
-            $staffList = ['John Doe', 'Jane Smith', 'Mary Johnson'];
+            $staffList = [
+                ['id_employee' => 1, 'name' => 'John Doe'],
+                ['id_employee' => 2, 'name' => 'Jane Smith'],
+                ['id_employee' => 3, 'name' => 'Mary Johnson'],
+            ];
+
+            $roomList = [
+                ['id_room' => 101, 'room_number' => '101'],
+                ['id_room' => 102, 'room_number' => '102'],
+                ['id_room' => 103, 'room_number' => '103'],
+                ['id_room' => 104, 'room_number' => '104'],
+            ];
 
             $this->context->smarty->assign([
-                'staffList' => $staffList, 
-                'current'   => self::$currentIndex, 
-                'token'     => Tools::getAdminTokenLite('SupervisorTasks'), 
+                'staffList' => $staffList,
+                'roomList' => $roomList,
+                'currentIndex' => self::$currentIndex,
+                'token' => Tools::getAdminTokenLite('SupervisorTasks'),
             ]);
 
-            // Render the task assignment form 
             $this->content = $this->context->smarty->fetch(
                 _PS_MODULE_DIR_ . 'housekeepingmanagement/views/templates/admin/task_assign_form.tpl'
             );
@@ -92,4 +105,63 @@ class SupervisorTasksController extends ModuleAdminController
             parent::initContent();
         }
     }
+
+
+    /**
+     * Process creating a new housekeeping task
+     */
+    protected function processCreateTask()
+    {
+        $time_slot = Tools::getValue('time_slot');
+        $deadline = Tools::getValue('deadline');
+        $room_numbers = Tools::getValue('room_number'); 
+        $assigned_staff = Tools::getValue('assigned_staff');
+        $priority = Tools::getValue('priority') ?? TaskAssignmentModel::PRIORITY_LOW;
+        $special_notes = Tools::getValue('special_notes');
+
+        $errors = [];
+
+        // Basic validation
+        if (empty($time_slot)) $errors[] = $this->l('Time slot is required.');
+        if (empty($deadline)) $errors[] = $this->l('Deadline is required.');
+        if (empty($room_numbers) || !is_array($room_numbers)) $errors[] = $this->l('At least one room must be selected.');
+        if (empty($assigned_staff)) $errors[] = $this->l('Please assign a staff member.');
+
+        if (empty($errors)) {
+            foreach ($room_numbers as $room_id) {
+                $data = [
+                    'id_room' => (int)$room_id,
+                    'id_employee' => (int)$assigned_staff, 
+                    'time_slot' => $time_slot,
+                    'deadline' => $deadline,
+                    'priority' => $priority,
+                    'special_notes' => $special_notes,
+                    'status' => TaskAssignmentModel::STATUS_UNASSIGNED,
+                ];
+
+                $created = TaskAssignmentModel::createTask($data);
+                if (!$created) {
+                    $errors[] = $this->l('Failed to create task for room ') . $room_id;
+                }
+            }
+
+            if (empty($errors)) {
+                $this->confirmations[] = $this->l('Tasks successfully created!');
+            }
+        }
+
+        if (!empty($errors)) {
+            foreach ($errors as $err) {
+                $this->errors[] = $err;
+            }
+        }
+    }
+
+    public function postProcess()
+    {
+        if (Tools::isSubmit('submit_task')) {
+            $this->processCreateTask();
+        }
+    }
+
 }
