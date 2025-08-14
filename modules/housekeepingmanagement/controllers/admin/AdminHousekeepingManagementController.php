@@ -71,7 +71,8 @@ class AdminHousekeepingManagementController extends ModuleAdminController
         // add tabs 
         $this->tabs = array(
             'SOPs' => $this->l('SOP Management'),
-            'RoomStatus' => $this->l('Room Status')
+            'RoomStatus' => $this->l('Room Status'),
+            'SupervisorTasks' => $this->l('Task Assignments')
         );
     }
 
@@ -416,6 +417,8 @@ class AdminHousekeepingManagementController extends ModuleAdminController
         // generate content based on active tab
         if ($activeTab === 'RoomStatus') {
             $this->content .= $this->displayRoomStatusTab();
+        } elseif ($activeTab === 'SupervisorTasks') {
+            $this->content .= $this->displaySupervisorTasksTab();
         } else {
             // default to SOPs tab
             if (Tools::isSubmit('addSOPModel') || Tools::isSubmit('updateSOPModel')) {
