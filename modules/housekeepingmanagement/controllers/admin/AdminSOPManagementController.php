@@ -223,6 +223,20 @@ class AdminSOPManagementController extends ModuleAdminController
             'html_content' => $this->getStepsHtml()
         );
 
+        // add JS for SweetAlert translations
+        Media::addJsDef(array(
+            'empty_steps_error_title' => $this->l('Form Error'),
+            'empty_steps_error_msg' => $this->l('All steps must have a description'),
+            'delete_sop_title' => $this->l('Delete SOP'),
+            'delete_sop_confirm' => $this->l('Are you sure you want to delete this SOP?'),
+            'delete_confirm_btn' => $this->l('Yes, delete it'),
+            'delete_cancel_btn' => $this->l('Cancel')
+        ));
+
+        // add CSS and JS for improved UI
+        $this->addCSS(_PS_MODULE_DIR_.'housekeepingmanagement/views/css/housekeeping-admin.css');
+        $this->addJS(_PS_MODULE_DIR_.'housekeepingmanagement/views/js/sop_steps.js');
+
         return parent::renderForm();
     }
 
@@ -406,5 +420,213 @@ class AdminSOPManagementController extends ModuleAdminController
         }
         
         return $roomTypes;
+    }
+
+    /**
+     * custom list rendering
+     */
+    public function renderList()
+    {
+        // use default list for export actions
+        if (Tools::isSubmit('export'.$this->table)) {
+            return parent::renderList();
+        }
+
+        // load CSS/JS and translations needed for list page (SweetAlert, module JS/CSS)
+        Media::addJsDef(array(
+            'delete_sop_title'      => $this->l('Delete SOP'),
+            'delete_sop_confirm'    => $this->l('Are you sure you want to delete this SOP?'),
+            'delete_confirm_btn'    => $this->l('Yes, delete it'),
+            'delete_cancel_btn'     => $this->l('Cancel'),
+        ));
+        // add SweetAlert2 CDN and module JS/CSS
+        $this->addJS('https://cdn.jsdelivr.net/npm/sweetalert2@11');
+        $this->addJS(_PS_MODULE_DIR_.'housekeepingmanagement/views/js/sop_steps.js');
+        $this->addCSS(_PS_MODULE_DIR_.'housekeepingmanagement/views/css/housekeeping-admin.css');
+
+        //process filter submission
+        $this->processFilter();
+
+        //initialize fitler values
+        $id_sop_filter = Tools::getValue('id_sop_filter', '');
+        $title_filter = Tools::getValue('title_filter', '');
+        $room_type_filter = Tools::getValue('room_type_filter', '');
+        $active_filter = Tools::getValue('active_filter', '');
+        $date_from       = Tools::getValue('date_from', '');
+        $date_to         = Tools::getValue('date_to', '');
+
+        //pagination
+        $page = (int)Tools::getValue('page', 1);
+        $limit = 10; // items per page
+
+        // buiild SQL filters with sanitized values (avoid PDO prepare)
+        $sql_filters = '';
+        if ($id_sop_filter !== '') {
+            $sql_filters .= ' AND s.id_sop = ' . (int)$id_sop_filter;
+        }
+        if ($title_filter !== '') {
+            $sql_filters .= " AND s.title LIKE '%" . pSQL($title_filter) . "%'";
+        }
+        if ($room_type_filter !== '') {
+            $sql_filters .= ' AND s.room_type = ' . (int)$room_type_filter;
+        }
+        if ($active_filter !== '') {
+            $sql_filters .= ' AND s.active = ' . (int)$active_filter;
+        }
+
+        // date filters: validate and apply
+        if ($date_from !== '') {
+            $ts = strtotime($date_from);
+            if ($ts !== false) {
+                $sql_filters .= " AND s.date_add >= '" . pSQL(date('Y-m-d 00:00:00', $ts)) . "'";
+            }
+        }
+        if ($date_to !== '') {
+            $ts = strtotime($date_to);
+            if ($ts !== false) {
+                $sql_filters .= " AND s.date_add <= '" . pSQL(date('Y-m-d 23:59:59', $ts)) . "'";
+            }
+        }
+
+        // count total
+        $count_sql = 'SELECT COUNT(DISTINCT s.id_sop) FROM `' . _DB_PREFIX_ . 'housekeeping_sop` s WHERE s.deleted = 0' . $sql_filters;
+        $total = (int)Db::getInstance()->getValue($count_sql);
+        $pages = ($total > 0) ? ceil($total / $limit) : 1;
+        $offset = ($page > 1) ? (($page - 1) * $limit) : 0;
+        if ($offset < 0) {
+            $offset = 0;
+        }
+
+        // get data with filtering and pagination
+        $sql = 'SELECT s.*, COUNT(st.id_sop_step) as steps_count
+                FROM `' . _DB_PREFIX_ . 'housekeeping_sop` s
+                LEFT JOIN `' . _DB_PREFIX_ . 'housekeeping_sop_step` st ON s.id_sop = st.id_sop
+                WHERE s.deleted = 0 ' . $sql_filters . '
+                GROUP BY s.id_sop
+                ORDER BY ' . pSQL($this->_defaultOrderBy) . ' ' . pSQL($this->_defaultOrderWay) . '
+                LIMIT ' . (int)$offset . ', ' . (int)$limit;
+
+        $results = Db::getInstance()->executeS($sql);
+
+        $sops = [];
+        if ($results) {
+            foreach ($results as $row) {
+                $roomTypeName = $this->l('All Room Types');
+                if (!empty($row['room_type'])) {
+                    $objProduct = new Product($row['room_type'], false, $this->context->language->id);
+                    if (Validate::isLoadedObject($objProduct)) {
+                        $roomTypeName = $objProduct->name;
+                    }
+                }
+
+                $sops[] = array(
+                    'id_sop' => $row['id_sop'],
+                    'title' => $row['title'],
+                    'room_type_name' => $roomTypeName,
+                    'active' => $row['active'],
+                    'steps_count' => $row['steps_count'],
+                    'date_add' => $row['date_add'],
+                    'date_upd' => $row['date_upd'],
+                );
+            }
+        }
+
+        // get room types for filter dropdown
+        $room_types = $this->getRoomTypeOptions();
+
+        // build filter params for pagination links
+        $filter_params = '';
+        if ($id_sop_filter !== '')    $filter_params .= '&id_sop_filter=' . (int)$id_sop_filter;
+        if ($title_filter !== '')     $filter_params .= '&title_filter=' . urlencode($title_filter);
+        if ($room_type_filter !== '') $filter_params .= '&room_type_filter=' . (int)$room_type_filter;
+        if ($active_filter !== '')    $filter_params .= '&active_filter=' . (int)$active_filter;
+        if ($date_from !== '')        $filter_params .= '&date_from=' . urlencode($date_from);
+        if ($date_to !== '')          $filter_params .= '&date_to=' . urlencode($date_to);
+
+        $this->context->smarty->assign(array(
+            'sops' => $sops,
+            'link' => $this->context->link,
+            'id_sop_filter' => $id_sop_filter,
+            'title_filter' => $title_filter,
+            'room_type_filter' => $room_type_filter,
+            'active_filter' => $active_filter,
+            'date_from' => $date_from,
+            'date_to' => $date_to,
+            'room_types' => $room_types,
+            'pagination_page' => $page,
+            'pagination_pages' => $pages,
+            'pagination_total' => $total,
+            'pagination_limit' => $limit,
+            'filter_params' => ltrim($filter_params, '&'),
+            'token' => $this->token,
+        ));
+
+        return $this->context->smarty->fetch(_PS_MODULE_DIR_.'housekeepingmanagement/views/templates/admin/sop_list.tpl');
+    }
+
+    /**
+     * process filter form submission
+     */
+    public function processFilter()
+    {
+        // reset filters
+        if (Tools::isSubmit('submitResetSOP')) {
+            $this->processResetFilters();
+        }
+        
+        // apply filters
+        if (Tools::isSubmit('submitFilterButtonSOP')) {
+            $this->processFilterParams();
+        }
+    }
+
+    /**
+     * save filter parameters
+     */
+    protected function processFilterParams()
+    {
+        $filters = array(
+            'id_sop_filter',
+            'title_filter',
+            'room_type_filter',
+            'active_filter'
+        );
+        
+        foreach ($filters as $filter) {
+            if (Tools::getValue($filter) !== false) {
+                $value = Tools::getValue($filter);
+                if ($value != '') {
+                    $this->context->cookie->{$filter} = $value;
+                } else {
+                    unset($this->context->cookie->{$filter});
+                }
+            }
+        }
+        
+        // always reset to page 1 when filtering
+        $this->context->cookie->page = 1;
+        $this->context->cookie->write();
+    }
+
+    /**
+     * reset all filters
+     * signature must match AdminControllerCore::processResetFilters($list_id = null)
+     */
+    public function processResetFilters($list_id = null)
+    {
+        $filters = array(
+            'id_sop_filter',
+            'title_filter',
+            'room_type_filter',
+            'active_filter',
+            'page'
+        );
+        
+        foreach ($filters as $filter) {
+            unset($this->context->cookie->{$filter});
+        }
+        
+        $this->context->cookie->write();
+        Tools::redirectAdmin($this->context->link->getAdminLink('AdminSOPManagement'));
     }
 }
