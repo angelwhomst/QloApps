@@ -334,7 +334,7 @@ class AdminHousekeepingManagementController extends ModuleAdminController
                     // create new steps
                     foreach ($steps as $index => $step) {
                         $sopStepModel = new SOPStepModel();
-                        $sopStepModel->id_sop = $sopModel->id; 
+                        $sopStepModel->id_sop = $sopModel->id_sop; 
                         $sopStepModel->step_order = $index + 1;
                         $sopStepModel->step_description = $step;
                         $sopStepModel->save();

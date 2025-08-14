@@ -256,7 +256,7 @@ class AdminSOPManagementController extends ModuleAdminController
      */
     public function postProcess()
     {
-        if (Tools::isSubmit('submitAddSOPModel')) {
+        if (Tools::isSubmit('submitAddhousekeeping_sop')) {
             // get form data
             $id_sop = (int)Tools::getValue('id_sop');
             $title = Tools::getValue('title');
@@ -291,12 +291,13 @@ class AdminSOPManagementController extends ModuleAdminController
                 $sop->date_upd = date('Y-m-d H:i:s');
 
                 if ($sop->save()) {
+                    $id_sop = $sop->id;
                     // always delete old steps and insert new
-                    SOPStepModel::deleteStepsBySOP($sop->id_sop);
+                    SOPStepModel::deleteStepsBySOP($id_sop);
                     foreach ($steps as $i => $desc) {
                         if (trim($desc) !== '') {
                             $step = new SOPStepModel();
-                            $step->id_sop = $sop->id_sop;
+                            $step->id_sop = $id_sop;
                             $step->step_order = $i + 1;
                             $step->step_description = $desc;
                             $step->deleted = 0;
