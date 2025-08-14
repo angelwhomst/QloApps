@@ -165,19 +165,35 @@ class HousekeepingManagement extends Module
     
     public function hookDisplayBackOfficeHeader()
     {
-        $controller = Tools::getValue('controller');
-        if ($controller == 'AdminHousekeepingManagement' || $controller == 'AdminSOPManagement') {
-            $this->context->controller->addCSS($this->_path.'views/css/admin.css');
-            $this->context->controller->addJS($this->_path.'views/js/admin.js');
+        if (Tools::getValue('controller') == 'AdminSOPManagement' || 
+            Tools::getValue('controller') == 'AdminHousekeepingManagement') {
+            
+            // add SweetAlert2
+            $this->context->controller->addJquery();
+            $this->context->controller->addJS('https://cdn.jsdelivr.net/npm/sweetalert2@11');
+            
+            // add module CSS
+            $this->context->controller->addCSS($this->_path.'views/css/housekeeping-admin.css');
+            
+            // add Font Awesome
+            $this->context->controller->addCSS('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
         }
     }
     
     public function hookActionAdminControllerSetMedia()
     {
-        $controller = Tools::getValue('controller');
-        if ($controller == 'AdminHousekeepingManagement' || $controller == 'AdminSOPManagement') {
-            $this->context->controller->addCSS($this->_path.'views/css/admin.css');
-            $this->context->controller->addJS($this->_path.'views/js/admin.js');
+        if (Tools::getValue('controller') == 'AdminSOPManagement' || 
+            Tools::getValue('controller') == 'AdminHousekeepingManagement') {
+            
+            // add SweetAlert2
+            $this->context->controller->addJquery();
+            $this->context->controller->addJS('https://cdn.jsdelivr.net/npm/sweetalert2@11');
+            
+            // add module CSS
+            $this->context->controller->addCSS($this->_path.'views/css/housekeeping-admin.css');
+            
+            // add Font Awesome
+            $this->context->controller->addCSS('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
         }
     }
 
