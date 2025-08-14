@@ -62,4 +62,70 @@ class TaskAssignmentModel extends ObjectModel
         $this->date_upd = date('Y-m-d H:i:s');
         return parent::update($null_values);
     }
+
+    /**
+     * Create new task
+     */
+    public static function createTask($data)
+    {
+        $task = new self();
+        $task->id_room = $data['id_room'];
+        $task->id_employee = $data['id_employee'];
+        $task->time_slot = $data['time_slot'];
+        $task->deadline = $data['deadline'];
+        $task->priority = $data['priority'] ?? self::PRIORITY_LOW;
+        $task->special_notes = $data['special_notes'] ?? '';
+        $task->status = $data['status'] ?? self::STATUS_UNASSIGNED;
+        $task->date_add = date('Y-m-d H:i:s');
+        $task->date_upd = date('Y-m-d H:i:s');
+        return $task->add();
+    }
+
+    /**
+     * Update task by id
+     */
+    public static function updateTask($id_task, $data)
+    {
+        $task = new self($id_task);
+        if (!Validate::isLoadedObject($task)) {
+            return false;
+        }
+
+        foreach ($data as $key => $value) {
+            if (property_exists($task, $key)) {
+                $task->{$key} = $value;
+            }
+        }
+        $task->date_upd = date('Y-m-d H:i:s');
+        return $task->update();
+    }
+
+    /**
+     * Delete task by id
+     */
+    public static function deleteTask($id_task)
+    {
+        $task = new self($id_task);
+        if (!Validate::isLoadedObject($task)) {
+            return false;
+        }
+        return $task->delete();
+    }
+
+    /**
+     * Get tasks
+     */
+    public static function getTasks($filters = array())
+    {
+        $sql = new DbQuery();
+        $sql->select('*');
+        $sql->from('housekeeping_task_assignment');
+
+        // Apply filters
+        foreach ($filters as $key => $value) {
+            $sql->where(pSQL($key) . ' = "' . pSQL($value) . '"');
+        }
+
+        return Db::getInstance()->executeS($sql);
+    }
 }
