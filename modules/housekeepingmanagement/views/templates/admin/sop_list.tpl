@@ -1,14 +1,11 @@
 <div class="panel sop-panel">
-    <div class="panel-heading">
+    <div class="panel-heading" style="padding-bottom:30px;padding-top:30px;">
         <i class="fas fa-list"></i> {l s='Standard Operating Procedures' mod='housekeepingmanagement'}
         <span class="badge">{$sops|@count}</span>
         <div class="panel-heading-action">
-            <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}&addhousekeeping_sop" class="btn btn-primary btn-sm">
-                <i class="fas fa-plus"></i> {l s='Add New SOP' mod='housekeepingmanagement'}
-            </a>
-            <!-- Export CSV button -->
-            <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}&exporthousekeeping_sop=1&token={$token}" class="btn btn-outline-secondary btn-sm" style="margin-left:8px;">
-                <i class="fas fa-file-export"></i> {l s='Export' mod='housekeepingmanagement'}
+            
+            <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}&addhousekeeping_sop" class="btn btn-primary btn-lg btn-add-sop" style="margin-top:12px;margin-right:20px">
+                <i class="fas fa-plus" aria-hidden="true"></i>&nbsp;{l s='Add New SOP' mod='housekeepingmanagement'}
             </a>
         </div>
     </div>
@@ -25,6 +22,7 @@
                         </div>
                     </div>
                 </div>
+
                 <div class="col-lg-3">
                     <div class="form-group">
                         <label class="control-label col-lg-4">{l s='Title' mod='housekeepingmanagement'}</label>
@@ -33,6 +31,8 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Room Type -->
                 <div class="col-lg-3">
                     <div class="form-group">
                         <label class="control-label col-lg-4">{l s='Room Type' mod='housekeepingmanagement'}</label>
@@ -46,6 +46,41 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Export button -->
+                <div class="col-lg-3">
+                    <div class="form-group" style="text-align:right;">
+                        <label class="control-label col-lg-4">&nbsp;</label>
+                        <div class="col-lg-8">
+                            <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}&exporthousekeeping_sop=1&token={$token}" class="btn btn-primary" style="margin-top:3px;">
+                                <i class="fas fa-file-export"></i> {l s='Export' mod='housekeepingmanagement'}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Second row: dates + Status (moved below Room Type) + actions -->
+            <div class="row" style="margin-top:10px;">
+                <div class="col-lg-3">
+                    <div class="form-group">
+                        <label class="control-label col-lg-4">{l s='From' mod='housekeepingmanagement'}</label>
+                        <div class="col-lg-8">
+                            <input type="date" name="date_from" value="{if isset($date_from)}{$date_from}{/if}" class="filter form-control">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3">
+                    <div class="form-group">
+                        <label class="control-label col-lg-4">{l s='To' mod='housekeepingmanagement'}</label>
+                        <div class="col-lg-8">
+                            <input type="date" name="date_to" value="{if isset($date_to)}{$date_to}{/if}" class="filter form-control">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status now beside dates (below Room Type) -->
                 <div class="col-lg-3">
                     <div class="form-group">
                         <label class="control-label col-lg-4">{l s='Status' mod='housekeepingmanagement'}</label>
@@ -58,34 +93,19 @@
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="row" style="margin-top:10px;">
+                <!-- Filter actions (Filter / Reset) -->
                 <div class="col-lg-3">
-                    <div class="form-group">
-                        <label class="control-label col-lg-4">{l s='From' mod='housekeepingmanagement'}</label>
-                        <div class="col-lg-8">
-                            <input type="date" name="date_from" value="{if isset($date_from)}{$date_from}{/if}" class="filter form-control">
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3">
-                    <div class="form-group">
-                        <label class="control-label col-lg-4">{l s='To' mod='housekeepingmanagement'}</label>
-                        <div class="col-lg-8">
-                            <input type="date" name="date_to" value="{if isset($date_to)}{$date_to}{/if}" class="filter form-control">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-6">
                     <div class="form-group filter-actions" style="text-align:right;">
-                        <button type="submit" id="submitFilterButtonSOP" name="submitFilterButtonSOP" class="btn btn-primary">
-                            <i class="fas fa-filter"></i> {l s='Filter' mod='housekeepingmanagement'}
-                        </button>
-                        <button type="submit" name="submitResetSOP" class="btn btn-default">
-                            <i class="fas fa-undo"></i> {l s='Reset' mod='housekeepingmanagement'}
-                        </button>
+                        <label class="control-label col-lg-4">&nbsp;</label>
+                        <div class="col-lg-8">
+                            <button type="submit" id="submitFilterButtonSOP" name="submitFilterButtonSOP" class="btn btn-primary">
+                                <i class="fas fa-filter"></i> {l s='Filter' mod='housekeepingmanagement'}
+                            </button>
+                            <button type="submit" name="submitResetSOP" class="btn btn-default">
+                                <i class="fas fa-undo"></i> {l s='Reset' mod='housekeepingmanagement'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -111,7 +131,7 @@
                         <tr class="list-sop-item">
                             <td>{$sop.id_sop}</td>
                             <td>
-                                <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}&id_sop={$sop.id_sop}&viewhousekeeping_sop">
+                                <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}&id_sop={$sop.id_sop}&viewhousekeeping_sop&token={$token}">
                                     <strong>{$sop.title|escape:'html':'UTF-8'}</strong>
                                 </a>
                             </td>
@@ -119,9 +139,10 @@
                             <td class="text-center">{$sop.steps_count}</td>
                             <td class="text-center">
                                 {if $sop.active}
-                                    <span class="sop-badge sop-badge-success">{l s='Active' mod='housekeepingmanagement'}</span>
+                                    <!-- use PrestaShop / Bootstrap badge classes -->
+                                    <span class="badge badge-success">{l s='Active' mod='housekeepingmanagement'}</span>
                                 {else}
-                                    <span class="sop-badge sop-badge-danger">{l s='Inactive' mod='housekeepingmanagement'}</span>
+                                    <span class="badge badge-danger">{l s='Inactive' mod='housekeepingmanagement'}</span>
                                 {/if}
                             </td>
                             <td>
@@ -129,13 +150,13 @@
                             </td>
                             <td class="text-right">
                                 <div class="btn-group">
-                                    <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}&id_sop={$sop.id_sop}&viewhousekeeping_sop" class="btn btn-default btn-sm" title="{l s='View' mod='housekeepingmanagement'}">
+                                    <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}&id_sop={$sop.id_sop}&viewhousekeeping_sop&token={$token}" class="btn btn-default btn-sm" title="{l s='View' mod='housekeepingmanagement'}">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}&id_sop={$sop.id_sop}&updatehousekeeping_sop=1" class="btn btn-default btn-sm" title="{l s='Edit' mod='housekeepingmanagement'}">
+                                    <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}&id_sop={$sop.id_sop}&updatehousekeeping_sop=1&token={$token}" class="btn btn-default btn-sm" title="{l s='Edit' mod='housekeepingmanagement'}">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}&id_sop={$sop.id_sop}&deletehousekeeping_sop" class="btn btn-default btn-sm btn-delete-sop" title="{l s='Delete' mod='housekeepingmanagement'}">
+                                    <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}&id_sop={$sop.id_sop}&deletehousekeeping_sop=1&token={$token}" class="btn btn-default btn-sm btn-delete-sop" title="{l s='Delete' mod='housekeepingmanagement'}">
                                         <i class="fas fa-trash"></i>
                                     </a>
                                 </div>
@@ -156,18 +177,18 @@
     </div>
     
     <!-- Pagination -->
-    {if $pagination_total > $pagination_limit}
+    {if $pagination_pages > 1}
     <div class="row">
         <div class="col-lg-6">
             <div class="pagination">
                 {if $pagination_page > 1}
-                    <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}&{$filter_params}&page={$pagination_page-1}" class="btn btn-default"><i class="fas fa-chevron-left"></i></a>
+                    <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}&{$filter_params}&page={$pagination_page-1}&token={$token}" class="btn btn-default"><i class="fas fa-chevron-left"></i></a>
                 {/if}
                 {for $p=1 to $pagination_pages}
-                    <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}&{$filter_params}&page={$p}" class="btn btn-default {if $p == $pagination_page}active{/if}">{$p}</a>
+                    <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}&{$filter_params}&page={$p}&token={$token}" class="btn btn-default {if $p == $pagination_page}active{/if}">{$p}</a>
                 {/for}
                 {if $pagination_page < $pagination_pages}
-                    <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}&{$filter_params}&page={$pagination_page+1}" class="btn btn-default"><i class="fas fa-chevron-right"></i></a>
+                    <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}&{$filter_params}&page={$pagination_page+1}&token={$token}" class="btn btn-default"><i class="fas fa-chevron-right"></i></a>
                 {/if}
             </div>
         </div>
@@ -213,6 +234,37 @@
     background-color: #25B9D7;
     color: white;
     border-color: #25B9D7;
+}
+
+.btn-add-sop {
+    font-weight: 600;
+    padding: 10px 18px;
+    box-shadow: 0 6px 14px rgba(37,185,215,0.12);
+    border-radius: 4px;
+    border: 1px solid rgba(0,0,0,0.06);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform .08s ease, box-shadow .12s ease;
+}
+
+.btn-add-sop:hover,
+.btn-add-sop:focus {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(37,185,215,0.16);
+    text-decoration: none;
+}
+
+.filter-panel .btn,
+.filter-panel a.btn {
+    border-radius: 3px;
+}
+
+@media (max-width: 768px) {
+    .btn-add-sop {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 </style>

@@ -492,7 +492,10 @@ class AdminSOPManagementController extends ModuleAdminController
         $count_sql = 'SELECT COUNT(DISTINCT s.id_sop) FROM `' . _DB_PREFIX_ . 'housekeeping_sop` s WHERE s.deleted = 0' . $sql_filters;
         $total = (int)Db::getInstance()->getValue($count_sql);
         $pages = ($total > 0) ? ceil($total / $limit) : 1;
-        $offset = ($page - 1) * $limit;
+        $offset = ($page > 1) ? (($page - 1) * $limit) : 0;
+        if ($offset < 0) {
+            $offset = 0;
+        }
 
         // get data with filtering and pagination
         $sql = 'SELECT s.*, COUNT(st.id_sop_step) as steps_count
@@ -555,7 +558,7 @@ class AdminSOPManagementController extends ModuleAdminController
             'pagination_total' => $total,
             'pagination_limit' => $limit,
             'filter_params' => ltrim($filter_params, '&'),
-+           'token' => $this->token,
+            'token' => $this->token,
         ));
 
         return $this->context->smarty->fetch(_PS_MODULE_DIR_.'housekeepingmanagement/views/templates/admin/sop_list.tpl');

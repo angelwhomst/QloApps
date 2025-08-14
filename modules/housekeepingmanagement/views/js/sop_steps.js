@@ -38,7 +38,6 @@ $(document).ready(function() {
     $(document).on('click', '.btn-delete-sop', function(e) {
         e.preventDefault();
         var deleteUrl = $(this).attr('href');
-        
         Swal.fire({
             title: delete_sop_title,
             text: delete_sop_confirm,
@@ -50,6 +49,7 @@ $(document).ready(function() {
             cancelButtonText: delete_cancel_btn
         }).then((result) => {
             if (result.isConfirmed) {
+                // proceed to delete URL (with token)
                 window.location.href = deleteUrl;
             }
         });
