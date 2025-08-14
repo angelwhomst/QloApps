@@ -144,6 +144,17 @@ class AdminSOPManagementController extends ModuleAdminController
     {
         // Get available room types for dropdown
         $roomTypeOptions = $this->getRoomTypeOptions();
+
+        // always assign steps for the form
+        $steps = array();
+        $id_sop = (int)Tools::getValue('id_sop');
+        if ($id_sop) {
+            $steps = SOPStepModel::getStepsBySOP($id_sop);
+        }
+        if (empty($steps)) {
+            $steps = array(array('step_order' => 1, 'step_description' => ''));
+        }
+        $this->context->smarty->assign(array('steps' => $steps));
         
         $this->fields_form = array(
             'legend' => array(
@@ -253,20 +264,16 @@ class AdminSOPManagementController extends ModuleAdminController
             $room_type = Tools::getValue('room_type');
             $active = (int)Tools::getValue('active', 1);
             $steps = Tools::getValue('step');
+
+            // DEBUG: Check what is posted
+            error_log('POST: '.print_r($_POST, true), 3, _PS_MODULE_DIR_.'housekeepingmanagement/logs/error_logs.log');
+            error_log('STEPS: '.print_r(Tools::getValue('step'), true), 3, _PS_MODULE_DIR_.'housekeepingmanagement/logs/error_logs.log');
             
             // validate form data
-            if (empty($title)) {
-                $this->errors[] = $this->l('Title is required');
-            }
-            
-            if (empty($description)) {
-                $this->errors[] = $this->l('Description is required');
-            }
-            
-            if (empty($steps) || !is_array($steps)) {
-                $this->errors[] = $this->l('At least one step is required');
-            }
-            
+            if (empty($title)) $this->errors[] = $this->l('Title is required');
+            if (empty($description)) $this->errors[] = $this->l('Description is required');
+            if (empty($steps) || !is_array($steps)) $this->errors[] = $this->l('At least one step is required');
+                
             // if no errors, save SOP
             if (empty($this->errors)) {
                 if ($id_sop) {
@@ -274,54 +281,34 @@ class AdminSOPManagementController extends ModuleAdminController
                 } else {
                     $sop = new SOPModel();
                     $sop->date_add = date('Y-m-d H:i:s');
-                    $sop->deleted = 0; // deleted flag is set to 0 for new records
+                    $sop->deleted = 0;
                 }
-
-                $sop->id_employee = (int)$this->context->employee->id;
-                // error_log('Setting employee ID to: ' . (int)$this->context->employee->id);
-                if ($sop->id_employee <= 0) {
-                    // fallback to the first available admin
-                    $employees = Employee::getEmployees(true);
-                    if (!empty($employees) && isset($employees[0]['id_employee'])) {
-                        $sop->id_employee = (int)$employees[0]['id_employee'];
-                    } else {
-                        $sop->id_employee = 1; // fallback to ID 1 if no other option
-                    }
-                }
-
+                $sop->id_employee = (int)$this->context->employee->id ?: 1;
                 $sop->title = $title;
                 $sop->description = $description;
                 $sop->room_type = $room_type;
                 $sop->active = $active;
                 $sop->date_upd = date('Y-m-d H:i:s');
-                
+
                 if ($sop->save()) {
-                    // delete existing steps
-                    SOPStepModel::softDeleteStepsBySOP($sop->id);
-                    
-                    // save steps
-                    foreach ($steps as $index => $step) {
-                        if (!empty($step)) {
-                            $sopStep = new SOPStepModel();
-                            $sopStep->id_sop = $sop->id;
-                            $sopStep->step_order = $index + 1;
-                            $sopStep->step_description = $step;
-                            $sopStep->deleted = 0;
-                            $sopStep->save();
+                    // always delete old steps and insert new
+                    SOPStepModel::deleteStepsBySOP($sop->id_sop);
+                    foreach ($steps as $i => $desc) {
+                        if (trim($desc) !== '') {
+                            $step = new SOPStepModel();
+                            $step->id_sop = $sop->id_sop;
+                            $step->step_order = $i + 1;
+                            $step->step_description = $desc;
+                            $step->deleted = 0;
+                            $step->save();
                         }
                     }
-                    
-                    if ($id_sop) {
-                        $this->confirmations[] = $this->l('SOP updated successfully');
-                    } else {
-                        Tools::redirectAdmin(self::$currentIndex.'&conf=3&token='.$this->token);
-                    }
+                    Tools::redirectAdmin(self::$currentIndex.'&conf=3&token='.$this->token);
                 } else {
                     $this->errors[] = $this->l('Error saving SOP');
                 }
             }
         }
-        
         return parent::postProcess();
     }
 

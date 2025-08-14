@@ -83,6 +83,7 @@ class HousekeepingManagement extends Module
             `id_sop` int(11) NOT NULL,
             `step_order` int(11) NOT NULL,
             `step_description` text NOT NULL,
+            `deleted` tinyint(1) NOT NULL DEFAULT 0,
             PRIMARY KEY (`id_sop_step`),
             KEY `id_sop` (`id_sop`)
         ) ENGINE='._MYSQL_ENGINE_.' DEFAULT CHARSET=utf8;';

@@ -451,7 +451,7 @@ class AdminHousekeepingManagementController extends ModuleAdminController
     {
         // get all hotel rooms
         $objHotelRoomInfo = new HotelRoomInformation();
-        $rooms = $objHotelRoomInfo->getAllHotelRooms();
+        $rooms = $objHotelRoomInfo->getAllRooms();
         
         // get room status data
         $roomStatusData = RoomStatusModel::getRoomStatusSummary();

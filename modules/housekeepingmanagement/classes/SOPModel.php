@@ -20,6 +20,7 @@ class SOPModel extends ObjectModel
     public $room_type;
     public $active;
     public $id_employee;
+    public $deleted;
     public $date_add;
     public $date_upd;
 
@@ -35,6 +36,7 @@ class SOPModel extends ObjectModel
             'room_type' => array('type' => self::TYPE_STRING, 'validate' => 'isGenericName', 'size' => 50),
             'active' => array('type' => self::TYPE_BOOL, 'validate' => 'isBool', 'required' => true),
             'id_employee' => array('type' => self::TYPE_INT, 'validate' => 'isUnsignedId'),
+            'deleted' => array('type' => self::TYPE_BOOL, 'validate' => 'isBool', 'required' => false, 'default' => 0),
             'date_add' => array('type' => self::TYPE_DATE, 'validate' => 'isDate'),
             'date_upd' => array('type' => self::TYPE_DATE, 'validate' => 'isDate'),
         ),
