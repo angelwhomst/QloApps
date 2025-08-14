@@ -80,7 +80,7 @@
         <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}" class="btn btn-default">
             <i class="process-icon-back"></i> {l s='Back to list' mod='housekeepingmanagement'}
         </a>
-        <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}&id_sop={$sop.id_sop}&updateSOPModel" class="btn btn-default">
+        <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}&id_sop={$sop.id_sop}&updatehousekeeping_sop=1" class="btn btn-default">
             <i class="process-icon-edit"></i> {l s='Edit' mod='housekeepingmanagement'}
         </a>
     </div>
