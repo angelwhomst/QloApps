@@ -289,16 +289,6 @@ class WebserviceSpecificManagementSOP implements WebserviceSpecificManagementInt
     }
 
     /**
-     * get summary counts of rooms by status
-     */
-    protected function getSOPSummary()
-    { 
-        $summary = RoomStatusModel::getRoomStatusSummary();
-        
-        $this->output = json_encode($summary);
-    }
-
-    /**
      * create a new SOP with steps
      * 
      * @param array $data

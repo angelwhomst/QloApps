@@ -71,7 +71,6 @@ class AdminHousekeepingManagementController extends ModuleAdminController
         // add tabs 
         $this->tabs = array(
             'SOPs' => $this->l('SOP Management'),
-            'RoomStatus' => $this->l('Room Status')
         );
     }
 
@@ -353,49 +352,7 @@ class AdminHousekeepingManagementController extends ModuleAdminController
             }
         }
         
-        // process room status updates
-        if (Tools::isSubmit('update_room_status')) {
-            $id_room = (int)Tools::getValue('id_room');
-            $status = Tools::getValue('status');
-            
-            if (RoomStatusModel::updateRoomStatus($id_room, $status, $this->context->employee->id)) {
-                $this->confirmations[] = $this->l('Room status updated successfully');
-            } else {
-                $this->errors[] = $this->l('An error occurred while updating room status');
-            }
-        }
-        
         return parent::postProcess();
-    }
-
-    /**
-     * Ajax method to handle room status updates
-     */
-    public function ajaxProcessUpdateRoomStatus()
-    {
-        $response = array(
-            'success' => false,
-            'message' => ''
-        );
-        
-        if (Tools::isSubmit('id_room') && Tools::isSubmit('status')) {
-            $id_room = (int)Tools::getValue('id_room');
-            $status = Tools::getValue('status');
-            
-            if (RoomStatusModel::updateRoomStatus($id_room, $status, $this->context->employee->id)) {
-                $response['success'] = true;
-                $response['message'] = $this->l('Room status updated successfully');
-
-                // get updated summary
-                $response['summary'] = RoomStatusModel::getRoomStatusSummary();
-            } else {
-                $response['message'] = $this->l('An error occurred while updating room status');
-            }
-        } else {
-            $response['message'] = $this->l('Invalid parameters');
-        }
-        
-        die(json_encode($response));
     }
 
     /**
@@ -414,8 +371,8 @@ class AdminHousekeepingManagementController extends ModuleAdminController
         }
 
         // generate content based on active tab
-        if ($activeTab === 'RoomStatus') {
-            $this->content .= $this->displayRoomStatusTab();
+        if ($activeTab === 'SOPs') {
+            $this->content .= $this->displaySOPsTab();
         } else {
             // default to SOPs tab
             if (Tools::isSubmit('addSOPModel') || Tools::isSubmit('updateSOPModel')) {
@@ -442,30 +399,6 @@ class AdminHousekeepingManagementController extends ModuleAdminController
         ));
         
         $this->context->smarty->assign('content', $this->context->smarty->fetch(_PS_MODULE_DIR_.'housekeepingmanagement/views/templates/admin/tabs.tpl'));
-    }
-
-    /**
-     * render view for room status management
-     */
-    public function displayRoomStatusTab()
-    {
-        // get all hotel rooms
-        $objHotelRoomInfo = new HotelRoomInformation();
-        $rooms = $objHotelRoomInfo->getAllRooms();
-        
-        // get room status data
-        $roomStatusData = RoomStatusModel::getRoomStatusSummary();
-        
-        $this->context->smarty->assign(array(
-            'rooms' => $rooms,
-            'summary' => $roomStatusData,
-            'status_cleaned' => RoomStatusModel::STATUS_CLEANED,
-            'status_not_cleaned' => RoomStatusModel::STATUS_NOT_CLEANED,
-            'status_failed_inspection' => RoomStatusModel::STATUS_FAILED_INSPECTION,
-            'link' => $this->context->link
-        ));
-        
-        return $this->context->smarty->fetch(_PS_MODULE_DIR_.'housekeepingmanagement/views/templates/admin/room_status.tpl');
     }
 
     /**

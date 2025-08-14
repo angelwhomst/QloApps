@@ -20,8 +20,8 @@ $sopSaved = $testSop->add();
 
 if ($sopSaved) {
     // Now try to save steps
-    $steps = ['Test step 1', 'Test step 2', 'Test step 3'];
-    
+    $steps = [' 1 STEP TEST', ' 2 STEP TEST', ' 3 STEP TEST'];
+
     // Method 1: Using SOPStepModel::createStepsForSOP
     $result = SOPStepModel::createStepsForSOP($testSop->id, $steps);
     
