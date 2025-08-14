@@ -371,8 +371,8 @@ class AdminHousekeepingManagementController extends ModuleAdminController
         }
 
         // generate content based on active tab
-        if ($activeTab === 'SOPs') {
-            $this->content .= $this->displaySOPsTab();
+        if ($activeTab === 'SupervisorTasks') {
+            $this->content .= $this->displaySupervisorTasksTab();
         } else {
             // default to SOPs tab
             if (Tools::isSubmit('addSOPModel') || Tools::isSubmit('updateSOPModel')) {
@@ -435,5 +435,15 @@ class AdminHousekeepingManagementController extends ModuleAdminController
         }
         
         return $roomTypes;
+    }
+
+    // For
+    public function displaySupervisorTasksTab()
+    {
+        $this->context->smarty->assign(array(
+            'placeholder_message' => $this->l('Task Assignments content will go here.')
+        ));
+
+        return $this->context->smarty->fetch(_PS_MODULE_DIR_.'housekeepingmanagement/views/templates/admin/supervisor_tasks.tpl');
     }
 }

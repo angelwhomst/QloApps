@@ -4,7 +4,7 @@
         <span class="badge">{$sops|@count}</span>
         <div class="panel-heading-action">
             
-            <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}&addhousekeeping_sop" class="btn btn-primary btn-lg btn-add-sop" style="margin-top:12px;margin-right:20px">
+            <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}&addhousekeeping_sop" class="btn btn-primary btn-lg btn-add-sop" style="margin-top:12px;margin-right:20px; font-size:13px">
                 <i class="fas fa-plus" aria-hidden="true"></i>&nbsp;{l s='Add New SOP' mod='housekeepingmanagement'}
             </a>
         </div>
@@ -237,8 +237,8 @@
 }
 
 .btn-add-sop {
-    font-weight: 600;
-    padding: 10px 18px;
+    font-weight: 400;
+    padding: 5px 10px;
     box-shadow: 0 6px 14px rgba(37,185,215,0.12);
     border-radius: 4px;
     border: 1px solid rgba(0,0,0,0.06);

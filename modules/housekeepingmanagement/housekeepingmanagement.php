@@ -87,6 +87,23 @@ class HousekeepingManagement extends Module
             KEY `id_sop` (`id_sop`)
         ) ENGINE='._MYSQL_ENGINE_.' DEFAULT CHARSET=utf8;';
 
+        // create Task Assignments table
+        $sql[] = 'CREATE TABLE IF NOT EXISTS `'._DB_PREFIX_.'housekeeping_task_assignment` (
+            `id_task` int(11) NOT NULL AUTO_INCREMENT,
+            `id_room` int(11) NOT NULL,
+            `id_employee` int(11) NOT NULL,
+            `time_slot` varchar(50) NOT NULL,
+            `deadline` datetime NOT NULL,
+            `priority` enum("High","Medium","Low") NOT NULL DEFAULT "Low",
+            `special_notes` text DEFAULT NULL,
+            `status` enum("Not Cleaned","Cleaned","Failed Inspection", "To Be Inspected", "Unassigned") NOT NULL DEFAULT "Unassigned",
+            `date_add` datetime NOT NULL,
+            `date_upd` datetime NOT NULL,
+            PRIMARY KEY (`id_task`),
+            KEY `id_room` (`id_room`),
+            KEY `id_employee` (`id_employee`)
+        ) ENGINE='._MYSQL_ENGINE_.' DEFAULT CHARSET=utf8;';
+
         // execute all sql queries
         foreach ($sql as $query) {
             $return &= Db::getInstance()->execute($query);
@@ -103,6 +120,7 @@ class HousekeepingManagement extends Module
         $sql = array();
         $sql[] = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.'housekeeping_sop`';
         $sql[] = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.'housekeeping_sop_step`';
+        $sql[] = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.'housekeeping_task_assignment`';
 
         $return = true;
         foreach ($sql as $query) {
@@ -120,6 +138,11 @@ class HousekeepingManagement extends Module
             'housekeeping_sop' => array(
                 'description' => 'Standard Operating Procedures',
                 'class' => 'SOPModel',
+                'forbidden_method' => array('HEAD')
+            ),
+            'housekeeping_task_assignment' => array(
+                'description' => 'Housekeeping Task Assignments',
+                'class' => 'TaskAssignmentModel',
                 'forbidden_method' => array('HEAD')
             )
         );
@@ -142,7 +165,11 @@ class HousekeepingManagement extends Module
             'class' => 'WebserviceSpecificManagementSOP',
             'file' => _PS_MODULE_DIR_.'housekeepingmanagement/classes/WebserviceSpecificManagementSOP.php'
         );
-        
+        //for task assignments
+        $specific_management['task_assignments'] = array(
+            'class' => 'WebserviceSpecificManagementTaskAssignment',
+            'file' => _PS_MODULE_DIR_.'housekeepingmanagement/classes/WebserviceSpecificManagementTaskAssignment.php'
+        );
         // update configuration
         return Configuration::updateValue('PS_WEBSERVICE_SPECIFIC_MANAGEMENT', json_encode($specific_management));
     }
@@ -165,33 +192,43 @@ class HousekeepingManagement extends Module
     
     public function hookDisplayBackOfficeHeader()
     {
-        if (Tools::getValue('controller') == 'AdminSOPManagement' || 
-            Tools::getValue('controller') == 'AdminHousekeepingManagement') {
-            
+        $controller = Tools::getValue('controller');
+        if (
+            $controller == 'AdminHousekeepingManagement' || 
+            $controller == 'AdminSOPManagement' || 
+            $controller == 'SupervisorTasks'
+        ) {
             // add SweetAlert2
             $this->context->controller->addJquery();
             $this->context->controller->addJS('https://cdn.jsdelivr.net/npm/sweetalert2@11');
             
             // add module CSS
             $this->context->controller->addCSS($this->_path.'views/css/housekeeping-admin.css');
-            
+            $this->context->controller->addCSS($this->_path.'views/css/admin.css');
+            $this->context->controller->addJS($this->_path.'views/js/admin.js');
+
             // add Font Awesome
             $this->context->controller->addCSS('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
         }
     }
-    
+
     public function hookActionAdminControllerSetMedia()
     {
-        if (Tools::getValue('controller') == 'AdminSOPManagement' || 
-            Tools::getValue('controller') == 'AdminHousekeepingManagement') {
-            
+        $controller = Tools::getValue('controller');
+        if (
+            $controller == 'AdminHousekeepingManagement' || 
+            $controller == 'AdminSOPManagement' || 
+            $controller == 'SupervisorTasks'
+        ) {
             // add SweetAlert2
             $this->context->controller->addJquery();
             $this->context->controller->addJS('https://cdn.jsdelivr.net/npm/sweetalert2@11');
             
             // add module CSS
             $this->context->controller->addCSS($this->_path.'views/css/housekeeping-admin.css');
-            
+            $this->context->controller->addCSS($this->_path.'views/css/admin.css');
+            $this->context->controller->addJS($this->_path.'views/js/admin.js');
+
             // add Font Awesome
             $this->context->controller->addCSS('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
         }
@@ -210,17 +247,15 @@ class HousekeepingManagement extends Module
         foreach (Language::getLanguages(true) as $lang) {
             $mainTab->name[$lang['id_lang']] = 'Housekeeping Management';
         }
-        $mainTab->id_parent = 0; // top level menu item
+        $mainTab->id_parent = 0; 
         $mainTab->module = $this->name;
         if (property_exists($mainTab, 'icon')) {
-            $mainTab->icon = 'icon-broom'; // use a built-in icon
+            $mainTab->icon = 'icon-broom';
         }
-
         $mainTab->add();
-
         $mainTab->updatePosition(0, 6);
-        
-        // create sub-tab for SOP Management
+
+        // sub-tab for SOP Management
         $sopTab = new Tab();
         $sopTab->active = 1;
         $sopTab->class_name = 'AdminSOPManagement';
@@ -231,10 +266,22 @@ class HousekeepingManagement extends Module
         $sopTab->id_parent = (int)Tab::getIdFromClassName('AdminHousekeepingManagement');
         $sopTab->module = $this->name;
         $sopTab->add();
-        
+
+        // sub-tab for Task Assignments
+        $taskTab = new Tab();
+        $taskTab->active = 1;
+        $taskTab->class_name = 'SupervisorTasks';
+        $taskTab->name = array();
+        foreach (Language::getLanguages(true) as $lang) {
+            $taskTab->name[$lang['id_lang']] = 'Housekeeping Task Assignments';
+        }
+        $taskTab->id_parent = (int)Tab::getIdFromClassName('AdminHousekeepingManagement');
+        $taskTab->module = $this->name;
+        $taskTab->add();
+
         // Set the default controller shown when clicking the main tab
         Configuration::updateValue('PS_DEFAULT_ADMIN_HOUSEKEEPING_TAB', 'AdminSOPManagement');
-        
+
         return true;
     }
 
@@ -246,6 +293,7 @@ class HousekeepingManagement extends Module
         // uninstall child tabs first
         $childTabIds = array(
             (int)Tab::getIdFromClassName('AdminSOPManagement'),
+            (int)Tab::getIdFromClassName('SupervisorTasks')
         );
         
         foreach ($childTabIds as $id_tab) {
@@ -264,5 +312,5 @@ class HousekeepingManagement extends Module
         
         return true;
     }
-
+    
 }
