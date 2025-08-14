@@ -7,13 +7,14 @@
         {if isset($steps) && count($steps)}
             {foreach from=$steps item=step name=stepLoop}
                 <div class="form-group step-row">
-                    <div class="col-lg-10">
+                    <!-- make input wider: col-lg-11, actions smaller: col-lg-1 -->
+                    <div class="col-lg-11">
                         <div class="input-group">
                             <span class="input-group-addon">{$smarty.foreach.stepLoop.iteration}</span>
                             <input type="text" name="step[]" class="form-control step-input" value="{$step.step_description|escape:'html':'UTF-8'}" required="required" placeholder="{l s='Enter step description' mod='housekeepingmanagement'}" />
                         </div>
                     </div>
-                    <div class="col-lg-2 step-actions">
+                    <div class="col-lg-1 step-actions">
                         <button type="button" class="btn btn-default move-step-up" title="{l s='Move Up' mod='housekeepingmanagement'}"><i class="fas fa-arrow-up"></i></button>
                         <button type="button" class="btn btn-default move-step-down" title="{l s='Move Down' mod='housekeepingmanagement'}"><i class="fas fa-arrow-down"></i></button>
                         <button type="button" class="btn btn-default remove-step" title="{l s='Remove Step' mod='housekeepingmanagement'}"><i class="fas fa-trash"></i></button>
@@ -22,13 +23,13 @@
             {/foreach}
         {else}
             <div class="form-group step-row">
-                <div class="col-lg-10">
+                <div class="col-lg-11">
                     <div class="input-group">
                         <span class="input-group-addon">1</span>
                         <input type="text" name="step[]" class="form-control step-input" required="required" placeholder="{l s='Enter step description' mod='housekeepingmanagement'}" />
                     </div>
                 </div>
-                <div class="col-lg-2 step-actions">
+                <div class="col-lg-1 step-actions">
                     <button type="button" class="btn btn-default move-step-up" title="{l s='Move Up' mod='housekeepingmanagement'}"><i class="fas fa-arrow-up"></i></button>
                     <button type="button" class="btn btn-default move-step-down" title="{l s='Move Down' mod='housekeepingmanagement'}"><i class="fas fa-arrow-down"></i></button>
                     <button type="button" class="btn btn-default remove-step" title="{l s='Remove Step' mod='housekeepingmanagement'}"><i class="fas fa-trash"></i></button>
@@ -50,13 +51,13 @@
         $(document).on('click', '.add-step', function() {
             var stepsCount = $('.step-row').length;
             var newStepHtml = '<div class="form-group step-row">' +
-                '<div class="col-lg-10">' +
+                '<div class="col-lg-11">' +
                 '<div class="input-group">' +
                 '<span class="input-group-addon">' + (stepsCount + 1) + '</span>' +
                 '<input type="text" name="step[]" class="form-control step-input" required="required" placeholder="{l s='Enter step description' mod='housekeepingmanagement'}" />' +
                 '</div>' +
                 '</div>' +
-                '<div class="col-lg-2 step-actions">' +
+                '<div class="col-lg-1 step-actions">' +
                 '<button type="button" class="btn btn-default move-step-up" title="{l s='Move Up' mod='housekeepingmanagement'}"><i class="fas fa-arrow-up"></i></button>' +
                 '<button type="button" class="btn btn-default move-step-down" title="{l s='Move Down' mod='housekeepingmanagement'}"><i class="fas fa-arrow-down"></i></button>' +
                 '<button type="button" class="btn btn-default remove-step" title="{l s='Remove Step' mod='housekeepingmanagement'}"><i class="fas fa-trash"></i></button>' +

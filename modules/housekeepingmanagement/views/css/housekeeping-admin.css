@@ -125,6 +125,30 @@ button.add-step i {
 }
 
 /* SOP View Page */
+.panel.sop-panel.sop-details-panel {
+    display: flex;
+    flex-direction: column;
+    height: 80%;
+}
+.panel.sop-panel.sop-details-panel > .panel-body {
+    max-height: calc(65vh) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 12px;
+}
+
+.sop-details-panel .panel-body::-webkit-scrollbar {
+    width: 8px;
+}
+.sop-details-panel .panel-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+.sop-details-panel .panel-body::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.12);
+    border-radius: 4px;
+    border: 2px solid transparent;
+}
+
 .sop-details-panel .well {
     background-color: #fff;
     border-radius: 4px;
@@ -299,5 +323,10 @@ button.add-step i {
         flex: 0 0 100%;
         text-align: left;
         padding: 3px 0;
+    }
+
+    .sop-details-panel .panel-body {
+        max-height: calc(55vh);
+        padding-right: 8px;
     }
 }
