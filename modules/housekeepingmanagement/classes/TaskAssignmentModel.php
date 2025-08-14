@@ -1,0 +1,65 @@
+<?php
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
+class TaskAssignmentModel extends ObjectModel
+{
+    public $id_task;
+    public $id_room;
+    public $id_employee;
+    public $time_slot;
+    public $deadline;
+    public $priority;
+    public $special_notes;
+    public $status;
+    public $date_add;
+    public $date_upd;
+
+    // Priority Constants
+    const PRIORITY_LOW = 'Low';
+    const PRIORITY_MEDIUM = 'Medium';
+    const PRIORITY_HIGH = 'High';
+
+    // Status Constants
+    const STATUS_NOT_CLEANED = 'Not Cleaned';
+    const STATUS_CLEANED = 'Cleaned';
+    const STATUS_FAILED_INSPECTION = 'Failed Inspection';
+    const STATUS_TO_BE_INSPECTED = 'To Be Inspected';
+    const STATUS_UNASSIGNED = 'Unassigned';
+
+    public static $definition = [
+        'table' => 'housekeeping_task_assignment',
+        'primary' => 'id_task',
+        'fields' => [
+            'id_room' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedInt', 'required' => true],
+            'id_employee' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedInt', 'required' => true],
+            'time_slot' => ['type' => self::TYPE_STRING, 'validate' => 'isGenericName', 'required' => true],
+            'deadline' => ['type' => self::TYPE_DATE, 'validate' => 'isDate', 'required' => true],
+            'priority' => ['type' => self::TYPE_STRING, 'validate' => 'isGenericName', 'required' => true],
+            'special_notes' => ['type' => self::TYPE_STRING, 'validate' => 'isCleanHtml'],
+            'status' => ['type' => self::TYPE_STRING, 'validate' => 'isGenericName', 'required' => true],
+            'date_add' => ['type' => self::TYPE_DATE, 'validate' => 'isDate'],
+            'date_upd' => ['type' => self::TYPE_DATE, 'validate' => 'isDate'],
+        ],
+    ];
+
+    /**
+     * Automatically set date_add and date_upd on add
+     */
+    public function add($autodate = true, $null_values = false)
+    {
+        $this->date_add = date('Y-m-d H:i:s');
+        $this->date_upd = date('Y-m-d H:i:s');
+        return parent::add($autodate, $null_values);
+    }
+
+    /**
+     * Automatically update date_upd on update
+     */
+    public function update($null_values = false)
+    {
+        $this->date_upd = date('Y-m-d H:i:s');
+        return parent::update($null_values);
+    }
+}

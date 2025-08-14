@@ -68,12 +68,6 @@ class AdminHousekeepingManagementController extends ModuleAdminController
             )
         );
 
-        // add tabs 
-        $this->tabs = array(
-            'SOPs' => $this->l('SOP Management'),
-            'RoomStatus' => $this->l('Room Status'),
-            'SupervisorTasks' => $this->l('Task Assignments')
-        );
     }
 
     /**
@@ -406,45 +400,52 @@ class AdminHousekeepingManagementController extends ModuleAdminController
     {
         parent::initContent();
 
-        $this->content = '';
+        $this->tabs = array(
+            'SOPs' => $this->l('SOP Management'),
+            'RoomStatus' => $this->l('Room Status'),
+            'SupervisorTasks' => $this->l('Housekeeping Task Assignments')
+        );
 
-        // determine which tab is active
+        // Determine active tab
         $activeTab = 'SOPs';
         if (Tools::getValue('tab') && isset($this->tabs[Tools::getValue('tab')])) {
             $activeTab = Tools::getValue('tab');
         }
 
-        // generate content based on active tab
+        // Load tab content
         if ($activeTab === 'RoomStatus') {
-            $this->content .= $this->displayRoomStatusTab();
+            $tabContent = $this->displayRoomStatusTab();
         } elseif ($activeTab === 'SupervisorTasks') {
-            $this->content .= $this->displaySupervisorTasksTab();
+            $tabContent = $this->displaySupervisorTasksTab();
         } else {
-            // default to SOPs tab
             if (Tools::isSubmit('addSOPModel') || Tools::isSubmit('updateSOPModel')) {
-                $this->content .= $this->renderForm();
+                $tabContent = $this->renderForm();
             } else {
-                $this->content .= $this->renderList();
+                $tabContent = $this->renderList();
             }
         }
-
-        //add tab nav
+        
+        // Build tab links
         $tabLinks = array();
         foreach ($this->tabs as $tabId => $tabLabel) {
             $tabLinks[] = array(
                 'id' => $tabId,
                 'label' => $tabLabel,
                 'active' => ($activeTab === $tabId),
-                'url' => $this->context->link->getAdminLink('AdminHousekeepingManagement').'&tab='.$tabId
+                'url' => $this->context->link->getAdminLink('AdminHousekeepingManagement', false, [], ['tab' => $tabId])
             );
         }
-        
+
+        // Assign for tabs.tpl
         $this->context->smarty->assign(array(
-            'content' => $this->content,
-            'tabs' => $tabLinks
+            'tabs' => $tabLinks,
+            'content' => $tabContent
         ));
-        
-        $this->context->smarty->assign('content', $this->context->smarty->fetch(_PS_MODULE_DIR_.'housekeepingmanagement/views/templates/admin/tabs.tpl'));
+
+        // Render tabs with content
+        $this->content = $this->context->smarty->fetch(
+            _PS_MODULE_DIR_.'housekeepingmanagement/views/templates/admin/tabs.tpl'
+        );
     }
 
     /**
@@ -506,4 +507,14 @@ class AdminHousekeepingManagementController extends ModuleAdminController
         
         return $roomTypes;
     }
+    // For
+    public function displaySupervisorTasksTab()
+    {
+        $this->context->smarty->assign(array(
+            'placeholder_message' => $this->l('Task Assignments content will go here.')
+        ));
+
+        return $this->context->smarty->fetch(_PS_MODULE_DIR_.'housekeepingmanagement/views/templates/admin/supervisor_tasks.tpl');
+    }
+
 }
