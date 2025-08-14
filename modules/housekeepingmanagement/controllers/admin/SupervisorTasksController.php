@@ -1,7 +1,6 @@
 <?php
-// Ensure that this file is accessed within PrestaShop context
 if (!defined('_PS_VERSION_')) {
-    exit; // Prevent direct access to the file for security
+    exit; 
 }
 
 /**
