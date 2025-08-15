@@ -1,0 +1,341 @@
+/**
+ * Housekeeping Management Module - Admin Styles
+ */
+
+/* General Styles */
+
+.swal2-small {
+    width: 320px !important;
+    max-width: 90vw;
+}
+
+.sop-panel {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    border-radius: 4px;
+    border: 1px solid #e7e7e7;
+    transition: all 0.3s ease;
+    margin-left: 24px;
+    margin-right: 24px;
+}
+
+.sop-panel:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.sop-panel .panel-heading {
+    background: linear-gradient(to right, #f5f5f5, #ffffff);
+    border-bottom: 1px solid #e7e7e7;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    
+}
+
+.sop-panel .panel-heading i {
+    margin-right: 10px;
+    color: #25B9D7;
+}
+
+/* Steps UI */
+.sop-steps-container {
+    padding: 15px 0;
+}
+
+.steps-container {
+    margin-bottom: 20px;
+}
+
+.step-row {
+    position: relative;
+    margin-bottom: 10px;
+    background: #f9f9f9;
+    border-radius: 4px;
+    padding: 15px 15px 5px;
+    border-left: 3px solid #25B9D7;
+    transition: all 0.2s ease;
+}
+
+.step-row:hover {
+    background: #f0f0f0;
+}
+
+.step-row .input-group-addon {
+    background-color: #25B9D7;
+    color: #fff;
+    font-weight: bold;
+    border-color: #25B9D7;
+    width: 40px;
+}
+
+.step-row .form-control {
+    border-color: #ddd;
+    height: 38px;
+    font-size: 14px;
+}
+
+.step-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.step-actions button {
+    margin-left: 5px;
+    border-radius: 3px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #fff;
+}
+
+.step-actions .remove-step {
+    color: #E74C3C;
+    border-color: #E74C3C;
+}
+
+.step-actions .remove-step:hover {
+    background-color: #E74C3C;
+    color: #fff;
+}
+
+.step-actions .move-step-up,
+.step-actions .move-step-down {
+    color: #3498DB;
+    border-color: #3498DB;
+}
+
+.step-actions .move-step-up:hover,
+.step-actions .move-step-down:hover {
+    background-color: #3498DB;
+    color: #fff;
+}
+
+button.add-step {
+    background: #2ECC71;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 12px;
+    transition: all 0.3s;
+}
+
+button.add-step:hover {
+    background: #27AE60;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+button.add-step i {
+    margin-right: 5px;
+}
+
+/* SOP View Page */
+.panel.sop-panel.sop-details-panel {
+    display: flex;
+    flex-direction: column;
+    height: 80%;
+}
+.panel.sop-panel.sop-details-panel > .panel-body {
+    max-height: calc(65vh) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 12px;
+}
+
+.sop-details-panel .panel-body::-webkit-scrollbar {
+    width: 8px;
+}
+.sop-details-panel .panel-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+.sop-details-panel .panel-body::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.12);
+    border-radius: 4px;
+    border: 2px solid transparent;
+}
+
+.sop-details-panel .well {
+    background-color: #fff;
+    border-radius: 4px;
+    border: 1px solid #eee;
+    box-shadow: none;
+    padding: 15px;
+}
+
+.sop-steps-list {
+    counter-reset: step-counter;
+    padding-left: 0;
+}
+
+.sop-steps-list li {
+    position: relative;
+    list-style: none;
+    padding: 12px 15px 12px 50px;
+    background-color: #f9f9f9;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    border-left: 3px solid #25B9D7;
+}
+
+.sop-steps-list li:before {
+    content: counter(step-counter);
+    counter-increment: step-counter;
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #25B9D7;
+    color: white;
+    font-weight: bold;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 24px;
+}
+
+.sop-info-row {
+    display: flex;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.sop-info-row:last-child {
+    border-bottom: none;
+}
+
+.sop-info-label {
+    flex: 0 0 40%;
+    text-align: right;
+    padding-right: 15px;
+    font-weight: 600;
+    color: #777;
+}
+
+.sop-info-value {
+    flex: 0 0 60%;
+    font-weight: 500;
+}
+
+.sop-footer {
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.sop-badge {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sop-badge-success {
+    background-color: #2ECC71;
+    color: white;
+}
+
+.sop-badge-danger {
+    background-color: #E74C3C;
+    color: white;
+}
+
+
+/* Filter section styling */
+.filter-panel {
+    background: #f8f8f8;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    border: 1px solid #e7e7e7;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.filter-panel .form-group {
+    margin-bottom: 10px;
+}
+
+.filter-panel label {
+    font-weight: 600;
+    color: #555;
+}
+
+.filter-panel .form-control {
+    border-color: #ddd;
+    box-shadow: none;
+}
+
+.filter-panel .form-control:focus {
+    border-color: #25B9D7;
+}
+
+.filter-actions {
+    text-align: right;
+    padding-top: 10px;
+    border-top: 1px solid #e7e7e7;
+    margin-top: 10px;
+}
+
+.filter-actions .btn {
+    margin-left: 5px;
+}
+
+/* Pagination styling */
+.pagination {
+    display: inline-block;
+    margin: 20px 0;
+}
+
+.pagination .btn {
+    margin-right: 5px;
+    height: 34px;
+    min-width: 34px;
+    text-align: center;
+    padding: 6px 10px;
+}
+
+.pagination .btn.active {
+    background-color: #25B9D7;
+    color: white;
+    border-color: #25B9D7;
+}
+
+.dataTables_paginate {
+    padding-top: 20px;
+    color: #666;
+}
+/* Date input styling */
+.filter-panel input[type="date"] {
+    height: 36px;
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+@media (max-width: 768px) {
+    .step-row {
+        padding: 15px 10px 5px;
+    }
+    
+    .sop-info-row {
+        flex-direction: column;
+    }
+    
+    .sop-info-label, 
+    .sop-info-value {
+        flex: 0 0 100%;
+        text-align: left;
+        padding: 3px 0;
+    }
+
+    .sop-details-panel .panel-body {
+        max-height: calc(55vh);
+        padding-right: 8px;
+    }
+}
