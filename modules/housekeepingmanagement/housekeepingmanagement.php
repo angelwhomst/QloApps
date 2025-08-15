@@ -92,7 +92,7 @@ class HousekeepingManagement extends Module
         $sql[] = 'CREATE TABLE IF NOT EXISTS `'._DB_PREFIX_.'housekeeping_room_status` (
             `id_room_status` int(11) NOT NULL AUTO_INCREMENT,
             `id_room` int(11) NOT NULL,
-            `status` enum("CLEANED","NOT_CLEANED","FAILED_INSPECTION") NOT NULL DEFAULT "NOT_CLEANED",
+            `status` enum("Not Cleaned","Cleaned","Failed Inspection", "To Be Inspected", "Unassigned") NOT NULL DEFAULT "Unassigned",
             `id_employee` int(11) DEFAULT NULL,
             `date_upd` datetime NOT NULL,
             PRIMARY KEY (`id_room_status`),
@@ -102,18 +102,23 @@ class HousekeepingManagement extends Module
         // create Task Assignments table
         $sql[] = 'CREATE TABLE IF NOT EXISTS `'._DB_PREFIX_.'housekeeping_task_assignment` (
             `id_task` int(11) NOT NULL AUTO_INCREMENT,
+            `id_room_status` int(11) NOT NULL,
             `id_room` int(11) NOT NULL,
             `id_employee` int(11) NOT NULL,
             `time_slot` varchar(50) NOT NULL,
             `deadline` datetime NOT NULL,
             `priority` enum("High","Medium","Low") NOT NULL DEFAULT "Low",
             `special_notes` text DEFAULT NULL,
-            `status` enum("Not Cleaned","Cleaned","Failed Inspection", "To Be Inspected", "Unassigned") NOT NULL DEFAULT "Unassigned",
             `date_add` datetime NOT NULL,
             `date_upd` datetime NOT NULL,
             PRIMARY KEY (`id_task`),
             KEY `id_room` (`id_room`),
-            KEY `id_employee` (`id_employee`)
+            KEY `id_employee` (`id_employee`),
+            KEY `id_room_status` (`id_room_status`),
+            CONSTRAINT `fk_task_room_status` FOREIGN KEY (`id_room_status`) 
+                REFERENCES `'._DB_PREFIX_.'housekeeping_room_status` (`id_room_status`) 
+                ON DELETE CASCADE 
+                ON UPDATE CASCADE
         ) ENGINE='._MYSQL_ENGINE_.' DEFAULT CHARSET=utf8;';
 
         // execute all sql queries

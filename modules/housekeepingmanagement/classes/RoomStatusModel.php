@@ -35,9 +35,12 @@ class RoomStatusModel extends ObjectModel
     public $date_add;
     public $date_upd;
 
-    const STATUS_CLEANED = 'CLEANED';
-    const STATUS_NOT_CLEANED = 'NOT_CLEANED';
-    const STATUS_FAILED_INSPECTION = 'FAILED_INSPECTION';
+    // Status Constants
+    const STATUS_NOT_CLEANED = 'Not Cleaned';
+    const STATUS_CLEANED = 'Cleaned';
+    const STATUS_FAILED_INSPECTION = 'Failed Inspection';
+    const STATUS_TO_BE_INSPECTED = 'To Be Inspected';
+    const STATUS_UNASSIGNED = 'Unassigned';
 
     /**
      * @see ObjectModel::$definition

@@ -1,4 +1,4 @@
-<!-- Housekeeping Management - Admin UI -->
+<!-- Housekeeping Management - Supervisor UI dashboard -->
 <div class="housekeeping-dashboard" style="padding: 20px; font-family: Arial, sans-serif; background: #f5f6f7;">
 
     <style>
@@ -70,7 +70,7 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <div class="tabs" style="display: flex; gap: 5px;">
             <button class="btn active" data-filter="all">All room</button>
-            <button class="btn" data-filter="Unassigned Room">Unassigned Room</button>
+            <button class="btn" data-filter="Unassigned">Unassigned</button>
             <button class="btn" data-filter="Cleaned">Cleaned</button>
             <button class="btn" data-filter="Not Cleaned">Not Cleaned</button>
             <button class="btn" data-filter="To Be Inspected">To Be Inspected</button>
@@ -112,7 +112,72 @@
                 <th style="width: 15%;">Task Status</th>
             </tr>
         </thead>
-        <tbody id="roomTableBody"></tbody>
+        <tbody id="roomTableBody">
+        {foreach from=$tasks item=task}
+            <tr>
+                <td>{$task.room_number}</td>
+                <td>
+                    {if $task.staff_firstname}
+                        {$task.staff_firstname} {$task.staff_lastname}
+                    {else}
+                        No Assigned Staff
+                    {/if}
+                </td>
+                <td>
+                    {if isset($task.floor_number) && $task.floor_number != ""}
+                        {$task.floor_number}
+                    {else}
+                        Not Set
+                    {/if}
+                </td>
+                <td>{$task.deadline|date_format:"%m/%d/%Y"}</td>
+                <td>Not Yet Started</td>
+                <td>
+                    {assign var=priorityColor value=""}
+                    {assign var=priorityBg value=""}
+                    {if $task.priority == "High"}
+                        {assign var=priorityColor value="#F36960"}
+                        {assign var=priorityBg value="#FEECEB"}
+                    {elseif $task.priority == "Medium"}
+                        {assign var=priorityColor value="orange"}
+                        {assign var=priorityBg value="#FFF5E0"}
+                    {elseif $task.priority == "Low"}
+                        {assign var=priorityColor value="#41C588"}
+                        {assign var=priorityBg value="#E7F8F0"}
+                    {/if}
+
+                    <span style="color:{$priorityColor}; background:{$priorityBg}; font-weight:bold; border-radius:12px; padding:4px 8px; display:inline-block;">
+                        {$task.priority}
+                    </span>
+                </td>
+
+                <td>
+                    {assign var=statusColor value=""}
+                    {assign var=statusBg value=""}
+                    {if $task.room_status == "Failed Inspection"}
+                        {assign var=statusColor value="#F36960"}
+                        {assign var=statusBg value="#FEECEB"}
+                    {elseif $task.room_status == "Cleaned"}
+                        {assign var=statusColor value="#41C588"}
+                        {assign var=statusBg value="#E7F8F0"}
+                    {elseif $task.room_status == "Unassigned"}
+                        {assign var=statusColor value="#999"}
+                        {assign var=statusBg value="#F0F0F0"}
+                    {elseif $task.room_status == "Not Cleaned"}
+                        {assign var=statusColor value="#F5A623"}
+                        {assign var=statusBg value="#FFF5E0"}
+                    {elseif $task.room_status == "To Be Inspected"}
+                        {assign var=statusColor value="#007bff"}
+                        {assign var=statusBg value="#E0F0FF"}
+                    {/if}
+
+                    <span style="color:{$statusColor}; background:{$statusBg}; font-weight:bold; border-radius:12px; padding:4px 8px; display:inline-block;">
+                        {$task.room_status}
+                    </span>
+                </td>
+            </tr>
+        {/foreach}
+        </tbody>
     </table>
 
     <!-- Pagination -->
@@ -129,132 +194,113 @@
     <!-- Script -->
     {literal}
     <script>
-        const mockRoomData = [
-            { 
-                roomNumber: "#001", 
-                assignedStaff: "Deluxe Room", 
-                floor: "Floor - 1", 
-                dueDate: "01/01/25", 
-                startTime: "8:00 AM", 
-                priority: { label: "High", color: "#F36960", bg: "#FEECEB" }, 
-                status: { label: "Failed Inspection", color: "#F36960", bg: "#FEECEB" } 
-            },
-            { 
-                roomNumber: "#002", 
-                assignedStaff: "Standard Room", 
-                floor: "Floor - 2", 
-                dueDate: "01/01/25", 
-                startTime: "9:00 AM", 
-                priority: { label: "Medium", color: "orange", bg: "#FFF5E0" }, 
-                status: { label: "Cleaned", color: "#41C588", bg: "#E7F8F0"} 
-            },
-            { 
-                roomNumber: "#003", 
-                assignedStaff: "",  // no staff assigned
-                floor: "Floor - 3", 
-                dueDate: "01/02/25", 
-                startTime: "10:00 AM", 
-                priority: { label: "Low", color: "#41C588", bg: "#E7F8F0" }, 
-                status: { label: "Unassigned", color: "#999", bg: "#F0F0F0" } 
-            },
-            { 
-                roomNumber: "#004", 
-                assignedStaff: "John Doe", 
-                floor: "Floor - 1", 
-                dueDate: "01/03/25", 
-                startTime: "11:00 AM", 
-                priority: { label: "High", color: "#F36960", bg: "#FEECEB" }, 
-                status: { label: "Not Cleaned", color: "#F5A623", bg: "#FFF5E0" } 
-            },
-            { 
-                roomNumber: "#005", 
-                assignedStaff: "Jane Smith", 
-                floor: "Floor - 2", 
-                dueDate: "01/03/25", 
-                startTime: "12:00 PM", 
-                priority: { label: "Medium", color: "orange", bg: "#FFF5E0" }, 
-                status: { label: "To Be Inspected", color: "#007bff", bg: "#E0F0FF" } 
-            },
-            { 
-                roomNumber: "#006", 
-                assignedStaff: "Michael Lee", 
-                floor: "Floor - 3", 
-                dueDate: "01/04/25", 
-                startTime: "1:00 PM", 
-                priority: { label: "Low", color: "#41C588", bg: "#E7F8F0" }, 
-                status: { label: "Cleaned", color: "#41C588", bg: "#E7F8F0"} 
-            },
-            { 
-                roomNumber: "#007", 
-                assignedStaff: "",  // no staff assigned
-                floor: "Floor - 1", 
-                dueDate: "01/05/25", 
-                startTime: "2:00 PM", 
-                priority: { label: "High", color: "#F36960", bg: "#FEECEB" }, 
-                status: { label: "Unassigned", color: "#999", bg: "#F0F0F0" } 
-            },
-            { 
-                roomNumber: "#008", 
-                assignedStaff: "Emma Watson", 
-                floor: "Floor - 2", 
-                dueDate: "01/05/25", 
-                startTime: "3:00 PM", 
-                priority: { label: "Medium", color: "orange", bg: "#FFF5E0" }, 
-                status: { label: "Failed Inspection", color: "#F36960", bg: "#FEECEB" } 
-            }
-        ];
+    document.addEventListener('DOMContentLoaded', function() {
+        const from = document.querySelector('.from-date');
+        const to = document.querySelector('.to-date');
+        const btn = document.getElementById('dateFilterBtn');
+        const dropdown = document.getElementById('dateFilterDropdown');
+        const tabs = document.querySelectorAll('.tabs .btn');
+        const prioritySelect = document.querySelector('.filters select');
+        const tableBody = document.getElementById('roomTableBody');
+        const paginationContainer = document.querySelector('div[style*="text-align: right"]');
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const tableBody = document.getElementById('roomTableBody');
+        const rowsPerPage = 7;
+        let currentPage = 1;
+        let filteredRows = [];
 
-            function renderTable(data) {
-                tableBody.innerHTML = '';
-                data.forEach(function(room) {
-                    const assignedStaffDisplay = room.assignedStaff ? room.assignedStaff : "No Assigned Staff";
+        // Date input behavior
+        function setDateBehavior(input) {
+            input.addEventListener('focus', () => input.type = 'date');
+            input.addEventListener('blur', () => { if (!input.value) input.type = 'text'; });
+        }
+        setDateBehavior(from);
+        setDateBehavior(to);
 
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = 
-                        '<td>' + room.roomNumber + '</td>' +
-                        '<td>' + assignedStaffDisplay + '</td>' +
-                        '<td>' + room.floor + '</td>' +
-                        '<td>' + room.dueDate + '</td>' +
-                        '<td>' + room.startTime + '</td>' +
-                        '<td><span style="color:' + room.priority.color + '; background:' + room.priority.bg + '; font-weight:bold; border-radius:12px; padding:4px 8px; display:inline-block;">' + room.priority.label + '</span></td>' +
-                        '<td><span style="color:' + room.status.color + '; background:' + room.status.bg + '; font-weight:bold; border-radius:12px; padding:4px 8px; display:inline-block;">' + room.status.label + '</span></td>';
-                    tableBody.appendChild(tr);
-                });
-            }
-
-            renderTable(mockRoomData);
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
         });
+        document.addEventListener('click', () => dropdown.style.display = 'none');
 
+        // Get filtered rows
+        function getFilteredRows() {
+            const statusFilter = document.querySelector('.tabs .btn.active')?.getAttribute('data-filter') || 'all';
+            const priorityFilter = prioritySelect.value;
+            const fromDate = from.value ? new Date(from.value) : null;
+            const toDate = to.value ? new Date(to.value) : null;
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const from = document.querySelector('.from-date');
-            const to = document.querySelector('.to-date');
-            const btn = document.getElementById('dateFilterBtn');
-            const dropdown = document.getElementById('dateFilterDropdown');
+            return Array.from(tableBody.querySelectorAll('tr')).filter(row => {
+                const status = row.querySelector('td:nth-child(7)').innerText.trim();
+                const priority = row.querySelector('td:nth-child(6)').innerText.trim();
+                const deadlineText = row.querySelector('td:nth-child(4)').innerText.trim();
+                const deadline = deadlineText ? new Date(deadlineText) : null;
 
-            btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+                let show = true;
+                if (statusFilter !== 'all' && status !== statusFilter) show = false;
+                if (priorityFilter && priority !== priorityFilter) show = false;
+                if (fromDate && deadline && deadline < fromDate) show = false;
+                if (toDate && deadline && deadline > toDate) show = false;
+
+                return show;
             });
+        }
 
-            document.addEventListener('click', function() {
-                dropdown.style.display = 'none';
-            });
+        // Render table with pagination
+        function renderTable() {
+            filteredRows = getFilteredRows();
+            const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+            if (currentPage > totalPages) currentPage = totalPages || 1;
 
-            function setDateBehavior(input) {
-                input.addEventListener('focus', () => input.type = 'date');
-                input.addEventListener('blur', () => {
-                    if (!input.value) {
-                        input.type = 'text';
-                    }
-                });
+            tableBody.querySelectorAll('tr').forEach(row => row.style.display = 'none');
+
+            const start = (currentPage - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+            filteredRows.slice(start, end).forEach(row => row.style.display = '');
+
+            renderPagination(totalPages);
+        }
+
+        // Render pagination buttons dynamically
+        function renderPagination(totalPages) {
+            paginationContainer.innerHTML = ''; // Clear old buttons
+
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'btn';
+            prevBtn.innerText = 'Previous';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.addEventListener('click', () => { currentPage--; renderTable(); });
+            paginationContainer.appendChild(prevBtn);
+
+            for (let i = 1; i <= totalPages; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.className = 'btn';
+                pageBtn.innerText = i;
+                if (i === currentPage) pageBtn.classList.add('active');
+                pageBtn.addEventListener('click', () => { currentPage = i; renderTable(); });
+                paginationContainer.appendChild(pageBtn);
             }
-            setDateBehavior(from);
-            setDateBehavior(to);
-        });
+
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'btn';
+            nextBtn.innerText = 'Next';
+            nextBtn.disabled = currentPage === totalPages || totalPages === 0;
+            nextBtn.addEventListener('click', () => { currentPage++; renderTable(); });
+            paginationContainer.appendChild(nextBtn);
+        }
+
+        // Event listeners for filters
+        tabs.forEach(tab => tab.addEventListener('click', () => { 
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            currentPage = 1;
+            renderTable();
+        }));
+
+        [prioritySelect, from, to].forEach(el => el.addEventListener('change', () => { currentPage = 1; renderTable(); }));
+
+        // Initial render
+        renderTable();
+    });
     </script>
     {/literal}
 </div>
