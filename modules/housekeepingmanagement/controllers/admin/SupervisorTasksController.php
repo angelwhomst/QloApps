@@ -4,7 +4,7 @@ if (!defined('_PS_VERSION_')) {
 }
 
 require_once(_PS_MODULE_DIR_ . 'housekeepingmanagement/classes/TaskAssignmentModel.php');
-
+require_once(_PS_MODULE_DIR_.'hotelreservationsystem/classes/HotelRoomInformation.php');
 
 /**
  * SupervisorTasksController
@@ -33,6 +33,7 @@ class SupervisorTasksController extends ModuleAdminController
         ];
     }
 
+
     /**
      * initPageHeaderToolbar
      * 
@@ -58,14 +59,38 @@ class SupervisorTasksController extends ModuleAdminController
     public function renderList()
     {
         if (!Tools::isSubmit('addnewtask')) {
-            // Fetch the Smarty template for the supervisor tasks list
+
+            // Fetch data for table for supervisor dashboard
+            $sql = 'SELECT 
+                        r.room_num AS room_number,
+                        r.floor AS floor_number,  
+                        e.firstname AS staff_firstname,
+                        e.lastname AS staff_lastname,
+                        t.deadline,
+                        t.priority,
+                        s.status AS room_status
+                    FROM '._DB_PREFIX_.'housekeeping_task_assignment t
+                    LEFT JOIN '._DB_PREFIX_.'htl_room_information r 
+                        ON t.id_room = r.id
+                    LEFT JOIN '._DB_PREFIX_.'employee e 
+                        ON t.id_employee = e.id_employee
+                    LEFT JOIN '._DB_PREFIX_.'housekeeping_room_status s
+                        ON t.id_room_status = s.id_room_status
+                    ORDER BY t.deadline ASC';
+
+            $tasks = Db::getInstance()->executeS($sql);
+
+            $this->context->smarty->assign([
+                'tasks' => $tasks
+            ]);
+
             return $this->context->smarty->fetch(
                 _PS_MODULE_DIR_ . 'housekeepingmanagement/views/templates/admin/supervisor_tasks.tpl'
             );
         }
-
-        return ''; 
+        return '';
     }
+
 
     /**
      * initContent
@@ -76,18 +101,21 @@ class SupervisorTasksController extends ModuleAdminController
     public function initContent()
     {
         if (Tools::isSubmit('addnewtask')) {
-            $staffList = [
-                ['id_employee' => 1, 'name' => 'John Doe'],
-                ['id_employee' => 2, 'name' => 'Jane Smith'],
-                ['id_employee' => 3, 'name' => 'Mary Johnson'],
-            ];
+            // Fetch staff
+            $staffList = Db::getInstance()->executeS('
+                SELECT id_employee, CONCAT(firstname, " ", lastname) AS name
+                FROM '._DB_PREFIX_.'employee
+                WHERE active = 1
+                AND id_profile = 3
+                ORDER BY firstname ASC
+            ');
 
-            $roomList = [
-                ['id_room' => 101, 'room_number' => '101'],
-                ['id_room' => 102, 'room_number' => '102'],
-                ['id_room' => 103, 'room_number' => '103'],
-                ['id_room' => 104, 'room_number' => '104'],
-            ];
+            // Fetch room list
+            $roomList = Db::getInstance()->executeS('
+                SELECT id AS id_room, room_num AS room_number
+                FROM '._DB_PREFIX_.'htl_room_information
+                ORDER BY room_num ASC
+            ');
 
             $this->context->smarty->assign([
                 'staffList' => $staffList,
@@ -99,13 +127,40 @@ class SupervisorTasksController extends ModuleAdminController
             $this->content = $this->context->smarty->fetch(
                 _PS_MODULE_DIR_ . 'housekeepingmanagement/views/templates/admin/task_assign_form.tpl'
             );
+        }
 
-            parent::initContent();
-        } else {
-            parent::initContent();
+        // Successful alert message
+        $showSuccess = (Tools::getIsset('conf') && (int)Tools::getValue('conf') === 3);
+        $this->context->smarty->assign([
+            'showSuccess' => $showSuccess
+        ]);
+
+        parent::initContent();
+
+        // Inject JS to fade out alert & remove conf=3 from URL
+        if ($showSuccess) {
+            $this->context->controller->addJS(
+                'data:text/javascript,' . rawurlencode("
+                    document.addEventListener('DOMContentLoaded', function() {
+                        setTimeout(function() {
+                            var alertBox = document.querySelector('.alert-success');
+                            if (alertBox) {
+                                alertBox.style.transition = 'opacity 0.5s ease';
+                                alertBox.style.opacity = '0';
+                                setTimeout(function() { alertBox.remove(); }, 500);
+                            }
+                        }, 10000);
+
+                        if (window.history.replaceState) {
+                            var url = new URL(window.location.href);
+                            url.searchParams.delete('conf');
+                            window.history.replaceState({}, document.title, url.toString());
+                        }
+                    });
+                ")
+            );
         }
     }
-
 
     /**
      * Process creating a new housekeeping task
@@ -136,7 +191,7 @@ class SupervisorTasksController extends ModuleAdminController
                     'deadline' => $deadline,
                     'priority' => $priority,
                     'special_notes' => $special_notes,
-                    'status' => TaskAssignmentModel::STATUS_UNASSIGNED,
+                    'id_room_status' => 5,
                 ];
 
                 $created = TaskAssignmentModel::createTask($data);
@@ -146,7 +201,9 @@ class SupervisorTasksController extends ModuleAdminController
             }
 
             if (empty($errors)) {
-                $this->confirmations[] = $this->l('Tasks successfully created!');
+                Tools::redirectAdmin(
+                    $this->context->link->getAdminLink('SupervisorTasks') . '&conf=3'
+                );
             }
         }
 
