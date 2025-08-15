@@ -5,7 +5,6 @@ if (!defined('_PS_VERSION_')) {
 
 require_once(dirname(__FILE__).'/classes/SOPModel.php');
 require_once(dirname(__FILE__).'/classes/SOPStepModel.php');
-require_once(dirname(__FILE__).'/classes/RoomStatusModel.php');
 require_once(dirname(__FILE__).'/classes/WebserviceSpecificManagementSOP.php');
 
 class HousekeepingManagement extends Module
@@ -137,7 +136,6 @@ class HousekeepingManagement extends Module
         $sql = array();
         $sql[] = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.'housekeeping_sop`';
         $sql[] = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.'housekeeping_sop_step`';
-        $sql[] = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.'housekeeping_room_status`';
         $sql[] = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.'housekeeping_task_assignment`';
 
         $return = true;
@@ -156,11 +154,6 @@ class HousekeepingManagement extends Module
             'housekeeping_sop' => array(
                 'description' => 'Standard Operating Procedures',
                 'class' => 'SOPModel',
-                'forbidden_method' => array('HEAD')
-            ),
-            'housekeeping_room_status' => array(
-                'description' => 'Room Status Management',
-                'class' => 'RoomStatusModel',
                 'forbidden_method' => array('HEAD')
             ),
             'housekeeping_task_assignment' => array(
@@ -219,11 +212,19 @@ class HousekeepingManagement extends Module
         if (
             $controller == 'AdminHousekeepingManagement' || 
             $controller == 'AdminSOPManagement' || 
-            $controller == 'AdminRoomStatusManagement' || 
             $controller == 'SupervisorTasks'
         ) {
+            // add SweetAlert2
+            $this->context->controller->addJquery();
+            $this->context->controller->addJS('https://cdn.jsdelivr.net/npm/sweetalert2@11');
+            
+            // add module CSS
+            $this->context->controller->addCSS($this->_path.'views/css/housekeeping-admin.css');
             $this->context->controller->addCSS($this->_path.'views/css/admin.css');
             $this->context->controller->addJS($this->_path.'views/js/admin.js');
+
+            // add Font Awesome
+            $this->context->controller->addCSS('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
         }
     }
 
@@ -233,11 +234,19 @@ class HousekeepingManagement extends Module
         if (
             $controller == 'AdminHousekeepingManagement' || 
             $controller == 'AdminSOPManagement' || 
-            $controller == 'AdminRoomStatusManagement' || 
             $controller == 'SupervisorTasks'
         ) {
+            // add SweetAlert2
+            $this->context->controller->addJquery();
+            $this->context->controller->addJS('https://cdn.jsdelivr.net/npm/sweetalert2@11');
+            
+            // add module CSS
+            $this->context->controller->addCSS($this->_path.'views/css/housekeeping-admin.css');
             $this->context->controller->addCSS($this->_path.'views/css/admin.css');
             $this->context->controller->addJS($this->_path.'views/js/admin.js');
+
+            // add Font Awesome
+            $this->context->controller->addCSS('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
         }
     }
 
@@ -274,18 +283,6 @@ class HousekeepingManagement extends Module
         $sopTab->module = $this->name;
         $sopTab->add();
 
-        // sub-tab for Room Status
-        $roomStatusTab = new Tab();
-        $roomStatusTab->active = 1;
-        $roomStatusTab->class_name = 'AdminRoomStatusManagement';
-        $roomStatusTab->name = array();
-        foreach (Language::getLanguages(true) as $lang) {
-            $roomStatusTab->name[$lang['id_lang']] = 'Room Status';
-        }
-        $roomStatusTab->id_parent = (int)Tab::getIdFromClassName('AdminHousekeepingManagement');
-        $roomStatusTab->module = $this->name;
-        $roomStatusTab->add();
-
         // sub-tab for Task Assignments
         $taskTab = new Tab();
         $taskTab->active = 1;
@@ -312,7 +309,6 @@ class HousekeepingManagement extends Module
         // uninstall child tabs first
         $childTabIds = array(
             (int)Tab::getIdFromClassName('AdminSOPManagement'),
-            (int)Tab::getIdFromClassName('AdminRoomStatusManagement'), 
             (int)Tab::getIdFromClassName('SupervisorTasks')
         );
         
@@ -333,20 +329,4 @@ class HousekeepingManagement extends Module
         return true;
     }
     
-    /**
-     * Initialize Room Status for newly added rooms
-     * This method can be called from the hotelreservationsystem module
-     * when a new room is created
-     * 
-     * @param int $id_room Room ID
-     * @return bool Success
-     */
-    public function initializeRoomStatus($id_room)
-    {
-        return RoomStatusModel::updateRoomStatus(
-            $id_room, 
-            RoomStatusModel::STATUS_NOT_CLEANED, 
-            $this->context->employee->id
-        );
-    }
 }
