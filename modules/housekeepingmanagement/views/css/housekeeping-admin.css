@@ -3,11 +3,19 @@
  */
 
 /* General Styles */
+
+.swal2-small {
+    width: 320px !important;
+    max-width: 90vw;
+}
+
 .sop-panel {
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     border-radius: 4px;
     border: 1px solid #e7e7e7;
     transition: all 0.3s ease;
+    margin-left: 24px;
+    margin-right: 24px;
 }
 
 .sop-panel:hover {
@@ -20,6 +28,7 @@
     font-weight: 600;
     display: flex;
     align-items: center;
+    
 }
 
 .sop-panel .panel-heading i {

@@ -146,7 +146,8 @@
                     title: '{l s="Form Error" mod="housekeepingmanagement" js=1}',
                     text: '{l s="All steps must have a description" mod="housekeepingmanagement" js=1}',
                     icon: 'error',
-                    confirmButtonColor: '#25B9D7'
+                    confirmButtonColor: '#25B9D7',
+                    width: '400px'
                 });
                 return false;
             }

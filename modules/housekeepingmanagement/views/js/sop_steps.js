@@ -55,6 +55,49 @@ $(document).ready(function() {
         });
     });
 
+    // Form submission confirmation for SOP edit/update
+    $('button[name="submitAddhousekeeping_sop"]').on('click', function(e) {
+        e.preventDefault();
+        
+        // Get the form
+        var form = $(this).closest('form');
+        
+        // First validate that all steps have content
+        var hasEmptySteps = false;
+        $('.step-item textarea').each(function() {
+            if ($(this).val().trim() === '') {
+                hasEmptySteps = true;
+                return false;
+            }
+        });
+        
+        if (hasEmptySteps) {
+            Swal.fire({
+                title: typeof empty_steps_error_title !== 'undefined' ? empty_steps_error_title : 'Form Error',
+                text: typeof empty_steps_error_msg !== 'undefined' ? empty_steps_error_msg : 'All steps must have a description',
+                icon: 'error',
+                width: '400px'
+            });
+            return;
+        }
+        
+        // Show confirmation dialog
+        Swal.fire({
+            title: 'Save SOP?',
+            text: 'Are you sure you want to save changes to this SOP?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, save it',
+            cancelButtonText: 'Cancel',
+            width: '400px'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Submit the form
+                form.submit();
+            }
+        });
+    });
+
     // Apply animation to SOP list items
     $('.list-sop-item').each(function(index) {
         $(this).css('opacity', 0);
