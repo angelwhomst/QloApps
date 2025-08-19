@@ -35,6 +35,13 @@ class SupervisorTasksController extends ModuleAdminController
             'desc' => $this->l('Assign Staff'), 
             'icon' => 'process-icon-new', 
         ];
+
+        // Quick access to clean Task Board view
+        $this->page_header_toolbar_btn['board_view'] = [
+            'href' => $this->context->link->getAdminLink('SupervisorTasks') . '&board=1',
+            'desc' => $this->l('Open Task Board'),
+            'icon' => 'icon-list',
+        ];
     }
 
 
@@ -53,6 +60,18 @@ class SupervisorTasksController extends ModuleAdminController
         if (Tools::isSubmit('addnewtask') && isset($this->page_header_toolbar_btn['new_task'])) {
             unset($this->page_header_toolbar_btn['new_task']);
         }
+
+        // If viewing Task Board, show a back button instead of the board button
+        if (Tools::getValue('board')) {
+            if (isset($this->page_header_toolbar_btn['board_view'])) {
+                unset($this->page_header_toolbar_btn['board_view']);
+            }
+            $this->page_header_toolbar_btn['back_to_list'] = [
+                'href' => $this->context->link->getAdminLink('SupervisorTasks'),
+                'desc' => $this->l('Back to Assignments'),
+                'icon' => 'process-icon-back',
+            ];
+        }
     }
 
 
@@ -63,6 +82,13 @@ class SupervisorTasksController extends ModuleAdminController
     public function renderList()
     {
         if (!Tools::isSubmit('addnewtask')) {
+
+            // Render clean Task Board page when requested
+            if (Tools::getValue('board')) {
+                return $this->context->smarty->fetch(
+                    _PS_MODULE_DIR_ . 'housekeepingmanagement/views/templates/admin/task_board.tpl'
+                );
+            }
 
             // Fetch data for table for supervisor dashboard
             $sql = 'SELECT 
