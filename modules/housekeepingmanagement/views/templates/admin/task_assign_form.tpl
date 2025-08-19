@@ -108,6 +108,15 @@
                 {/foreach}
             </select>
 
+            <!-- SOP Dropdown -->
+            <label for="id_sop">Standard Operating Procedure (SOP)</label>
+            <select id="id_sop" name="id_sop">
+                <option value="">-- Select SOP --</option>
+                {foreach from=$sopList item=sop}
+                    <option value="{$sop.id_sop}">{$sop.title|escape:'html':'UTF-8'}</option>
+                {/foreach}
+            </select>
+
             <!-- Assign Staff Dropdown -->
             <label for="assigned_staff">Assign Staff</label>
             <select id="assigned_staff" name="assigned_staff">

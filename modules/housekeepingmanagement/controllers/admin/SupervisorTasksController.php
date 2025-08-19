@@ -60,14 +60,12 @@ class SupervisorTasksController extends ModuleAdminController
     {
         if (!Tools::isSubmit('addnewtask')) {
 
-            // Fetch data for table for supervisor dashboard
             $sql = 'SELECT 
+                        t.*, 
                         r.room_num AS room_number,
                         r.floor AS floor_number,  
                         e.firstname AS staff_firstname,
                         e.lastname AS staff_lastname,
-                        t.deadline,
-                        t.priority,
                         s.status AS room_status
                     FROM '._DB_PREFIX_.'housekeeping_task_assignment t
                     LEFT JOIN '._DB_PREFIX_.'htl_room_information r 
@@ -80,6 +78,18 @@ class SupervisorTasksController extends ModuleAdminController
 
             $tasks = Db::getInstance()->executeS($sql);
 
+            // Fetch SOP steps for each task
+            foreach ($tasks as &$task) {
+                $task['sop_title'] = '';
+                $task['sop_steps'] = [];
+                if (!empty($task['id_sop'])) {
+                    $sop = Db::getInstance()->getRow('SELECT title FROM '._DB_PREFIX_.'housekeeping_sop WHERE id_sop = '.(int)$task['id_sop']);
+                    $steps = Db::getInstance()->executeS('SELECT step_order, step_description FROM '._DB_PREFIX_.'housekeeping_sop_step WHERE id_sop = '.(int)$task['id_sop'].' AND deleted = 0 ORDER BY step_order ASC');
+                    $task['sop_title'] = $sop ? $sop['title'] : '';
+                    $task['sop_steps'] = $steps;
+                }
+            }
+
             $this->context->smarty->assign([
                 'tasks' => $tasks
             ]);
@@ -90,7 +100,6 @@ class SupervisorTasksController extends ModuleAdminController
         }
         return '';
     }
-
 
     /**
      * initContent
@@ -117,9 +126,18 @@ class SupervisorTasksController extends ModuleAdminController
                 ORDER BY room_num ASC
             ');
 
+            // Fetch SOP list
+            $sopList = Db::getInstance()->executeS('
+                SELECT id_sop, title
+                FROM '._DB_PREFIX_.'housekeeping_sop
+                WHERE active = 1 AND deleted = 0
+                ORDER BY title ASC
+            ');
+
             $this->context->smarty->assign([
                 'staffList' => $staffList,
                 'roomList' => $roomList,
+                'sopList' => $sopList,
                 'currentIndex' => self::$currentIndex,
                 'token' => Tools::getAdminTokenLite('SupervisorTasks'),
             ]);
@@ -173,6 +191,7 @@ class SupervisorTasksController extends ModuleAdminController
         $assigned_staff = Tools::getValue('assigned_staff');
         $priority = Tools::getValue('priority') ?? TaskAssignmentModel::PRIORITY_LOW;
         $special_notes = Tools::getValue('special_notes');
+        $id_sop = Tools::getValue('id_sop'); 
 
         $errors = [];
 
@@ -181,6 +200,7 @@ class SupervisorTasksController extends ModuleAdminController
         if (empty($deadline)) $errors[] = $this->l('Deadline is required.');
         if (empty($room_numbers) || !is_array($room_numbers)) $errors[] = $this->l('At least one room must be selected.');
         if (empty($assigned_staff)) $errors[] = $this->l('Please assign a staff member.');
+        if (empty($id_sop)) $errors[] = $this->l('Please select a SOP.'); 
 
         if (empty($errors)) {
             foreach ($room_numbers as $room_id) {
@@ -192,6 +212,7 @@ class SupervisorTasksController extends ModuleAdminController
                     'priority' => $priority,
                     'special_notes' => $special_notes,
                     'id_room_status' => 5,
+                    'id_sop' => (int)$id_sop,
                 ];
 
                 $created = TaskAssignmentModel::createTask($data);

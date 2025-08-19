@@ -105,6 +105,7 @@ class HousekeepingManagement extends Module
             `id_task` int(11) NOT NULL AUTO_INCREMENT,
             `id_room_status` int(11) NOT NULL,
             `id_room` int(11) NOT NULL,
+            `id_sop` int(11) DEFAULT NULL, /* SOP binding */
             `id_employee` int(11) NOT NULL,
             `time_slot` varchar(50) NOT NULL,
             `deadline` datetime NOT NULL,
@@ -116,9 +117,14 @@ class HousekeepingManagement extends Module
             KEY `id_room` (`id_room`),
             KEY `id_employee` (`id_employee`),
             KEY `id_room_status` (`id_room_status`),
+            KEY `id_sop` (`id_sop`),
             CONSTRAINT `fk_task_room_status` FOREIGN KEY (`id_room_status`) 
                 REFERENCES `'._DB_PREFIX_.'housekeeping_room_status` (`id_room_status`) 
                 ON DELETE CASCADE 
+                ON UPDATE CASCADE,
+            CONSTRAINT `fk_task_sop` FOREIGN KEY (`id_sop`)
+                REFERENCES `'._DB_PREFIX_.'housekeeping_sop` (`id_sop`)
+                ON DELETE SET NULL
                 ON UPDATE CASCADE
         ) ENGINE='._MYSQL_ENGINE_.' DEFAULT CHARSET=utf8;';
 

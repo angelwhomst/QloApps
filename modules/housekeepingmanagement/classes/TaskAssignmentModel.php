@@ -8,6 +8,7 @@ class TaskAssignmentModel extends ObjectModel
     public $id_task;
     public $id_room_status; 
     public $id_room;
+    public $id_sop;
     public $id_employee;
     public $time_slot;
     public $deadline;
@@ -27,6 +28,7 @@ class TaskAssignmentModel extends ObjectModel
         'fields' => [
             'id_room_status' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedInt', 'required' => true],
             'id_room' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedInt', 'required' => true],
+            'id_sop' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedInt'], 
             'id_employee' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedInt', 'required' => true],
             'time_slot' => ['type' => self::TYPE_STRING, 'validate' => 'isGenericName', 'required' => true],
             'deadline' => ['type' => self::TYPE_DATE, 'validate' => 'isDate', 'required' => true],
@@ -55,6 +57,7 @@ class TaskAssignmentModel extends ObjectModel
         $task = new self();
         $task->id_room_status = $data['id_room_status'];
         $task->id_room = $data['id_room'];
+        $task->id_sop = isset($data['id_sop']) ? (int)$data['id_sop'] : null; 
         $task->id_employee = $data['id_employee'];
         $task->time_slot = $data['time_slot'];
         $task->deadline = $data['deadline'];
