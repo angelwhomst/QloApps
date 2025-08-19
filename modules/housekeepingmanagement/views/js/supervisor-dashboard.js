@@ -141,8 +141,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 text: "Do you really want to delete this task?",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
+                confirmButtonColor: '#E74C3C',
+                cancelButtonColor: '#25B9D7',
                 confirmButtonText: 'Yes, delete it!',
                 cancelButtonText: 'Cancel'
             }).then((result) => {

@@ -141,8 +141,8 @@ $(document).ready(function() {
             text: "{if $editMode}Do you want to update this task?{else}Do you want to assign this task?{/if}",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
+            confirmButtonColor: '#25B9D7',
+            cancelButtonColor: '#E74C3C',
             confirmButtonText: "{if $editMode}Yes, update it!{else}Yes, assign it!{/if}",
             cancelButtonText: "Cancel"
         }).then((result) => {
