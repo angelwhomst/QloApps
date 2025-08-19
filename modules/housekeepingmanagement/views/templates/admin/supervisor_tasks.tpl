@@ -94,8 +94,12 @@
                         <h4 class="modal-title">Task Details</h4>
                     </div>
                     <div class="modal-body" id="hk-modal-body"></div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <div class="modal-footer" id="hk-modal-footer" style="display:flex; gap:10px; flex-wrap:wrap; justify-content:space-between; align-items:center;">
+                        <div id="hk-modal-progress" style="font-weight:700;">Checklist Done: 00/00</div>
+                        <div class="hk-actions-bar" style="display:flex; gap:8px;">
+                            <button type="button" class="btn btn-success" id="hk-done-task" aria-label="Submit checklist">Done Task</button>
+                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -645,7 +649,8 @@
         var endpoints = {
             fetch: currentUrlBase() + 'ajax=1&action=fetchTasks',
             toggle: currentUrlBase() + 'ajax=1&action=toggleStep',
-            detail: currentUrlBase() + 'ajax=1&action=getTaskDetail'
+            detail: currentUrlBase() + 'ajax=1&action=getTaskDetail',
+            submit: currentUrlBase() + 'ajax=1&action=submitChecklist'
         };
 
         function el(id){ return document.getElementById(id); }
@@ -709,12 +714,115 @@
 
         function openDetail(idTask){ var xhr=new XMLHttpRequest(); xhr.open('GET', endpoints.detail+'&id_task='+encodeURIComponent(idTask), true); xhr.onload=function(){ try{ var r=JSON.parse(xhr.responseText||'{}'); if(r.success) renderDetail(r.task);}catch(e){} }; xhr.send(); }
         function renderDetail(task){
-            var html = '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">'+
-                       '<h3 style="margin:0;">Room '+escapeHtml(task.room.number)+' <small>— '+escapeHtml(task.room.type)+'</small></h3>'+
-                       '<span class="hk-badge '+priorityClass(task.priority)+'">'+escapeHtml(task.priority)+'</span></div>'+
-                       '<div style="color:#666; margin-bottom:10px;"><i class="icon-time"></i> '+formatDate(task.deadline)+'</div>'+
-                       '<div>'+(task.steps||[]).map(function(st){ var c=st.status==='Completed'?'ok':(st.status==='In Progress'?'ip':'not'); return '<div class="hk-step"><div class="label">'+escapeHtml(st.label)+'</div><div><span class="hk-status '+c+'">'+st.status+'</span></div></div>'; }).join('')+'</div>';
-            var body=document.getElementById('hk-modal-body'); body.innerHTML=html; if(window.jQuery && jQuery.fn.modal){ jQuery('#hk-modal').modal('show'); }
+            var progressEl = document.getElementById('hk-modal-progress');
+            var done = (task.progress && task.progress.done) ? task.progress.done : 0;
+            var total = (task.progress && task.progress.total) ? task.progress.total : (task.steps||[]).length;
+            progressEl.textContent = 'Checklist Done: '+String(done).padStart(String(total).length,'0')+'/'+String(total).padStart(String(total).length,'0');
+
+            var header = '<div class="hk-detail-grid">'+
+                '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">'+
+                '<h3 style="margin:0;">Room '+escapeHtml(task.room.number)+' <small>— '+escapeHtml(task.room.type)+'</small></h3>'+
+                '<span class="hk-badge '+priorityClass(task.priority)+'">'+escapeHtml(task.priority)+'</span></div>'+
+                '<div style="display:flex; flex-wrap:wrap; gap:8px; color:#666;">'+
+                '<span title="Start"><i class="icon-time"></i> Start: '+(task.start?formatDate(task.start):'—')+'</span>'+
+                '<span title="Due"><i class="icon-time"></i> Due: '+formatDate(task.deadline)+'</span>'+
+                '<span class="hk-status ip" aria-label="In Progress badge">In Progress</span>'+
+                '</div>'+
+                (task.notes?('<div style="margin-top:8px; color:#444;"><strong>Note:</strong> '+escapeHtml(task.notes)+'</div>'):'')+
+                '</div>';
+
+            var list = (task.steps||[]).map(function(st){
+                var id = st.id_sop_step;
+                var passed = (st.status==='Completed');
+                return '<div class="hk-item" data-id="'+id+'">'+
+                    '<div class="label">'+escapeHtml(st.label)+'</div>'+
+                    '<div class="hk-toggle" role="group" aria-label="'+escapeHtml(st.label)+' result">'+
+                        '<input type="radio" name="step-'+id+'" id="step-'+id+'-pass" '+(passed?'checked':'')+' />'+
+                        '<label class="opt-pass" for="step-'+id+'-pass" data-val="1">Pass</label>'+
+                        '<input type="radio" name="step-'+id+'" id="step-'+id+'-fail" '+(!passed?'checked':'')+' />'+
+                        '<label class="opt-fail" for="step-'+id+'-fail" data-val="0">Fail</label>'+
+                    '</div>'+
+                '</div>';
+            }).join('');
+
+            var body=document.getElementById('hk-modal-body');
+            body.innerHTML = header + '<div style="margin-top:10px;">'+ (list || '<div class="hk-empty">No checklist is configured for this room type.</div>') +'</div>';
+
+            // Bind toggle behavior with keyboard accessibility
+            body.querySelectorAll('.hk-toggle').forEach(function(group){
+                group.addEventListener('click', function(e){
+                    if (e.target && e.target.matches('label.opt-pass, label.opt-fail')) {
+                        var label = e.target; var parent = label.closest('.hk-toggle');
+                        var forId = label.getAttribute('for');
+                        var input = document.getElementById(forId); if (input) { input.checked = true; }
+                        updateModalProgress();
+                    }
+                });
+                group.addEventListener('keydown', function(e){
+                    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        var labels = Array.prototype.slice.call(group.querySelectorAll('label'));
+                        var checked = group.querySelector('input:checked');
+                        var idx = checked ? labels.findIndex(function(l){ return l.getAttribute('for') === checked.id; }) : 0;
+                        var next = e.key === 'ArrowRight' ? (idx+1)%labels.length : (idx-1+labels.length)%labels.length;
+                        var forId = labels[next].getAttribute('for'); var input = document.getElementById(forId); if (input) { input.checked = true; labels[next].focus(); }
+                        updateModalProgress();
+                    } else if (e.key === ' ' || e.key === 'Enter') {
+                        var focused = document.activeElement;
+                        if (focused && focused.tagName === 'LABEL' && group.contains(focused)) {
+                            e.preventDefault();
+                            var forId = focused.getAttribute('for');
+                            var input = document.getElementById(forId); if (input) { input.checked = true; }
+                            updateModalProgress();
+                        }
+                    }
+                });
+                // Make labels focusable for keyboard nav
+                group.querySelectorAll('label').forEach(function(l){ l.tabIndex = 0; });
+            });
+
+            // Attach submit handler
+            var submitBtn = document.getElementById('hk-done-task');
+            submitBtn.onclick = function(){ submitChecklist(task.id_task); };
+
+            if(window.jQuery && jQuery.fn.modal){ jQuery('#hk-modal').modal('show'); }
+        }
+
+        function updateModalProgress(){
+            var body=document.getElementById('hk-modal-body');
+            var items = body.querySelectorAll('.hk-item');
+            var total = items.length; var done = 0;
+            items.forEach(function(it){ var pass = it.querySelector('label.opt-pass'); var input = document.getElementById(pass.getAttribute('for')); if (input && input.checked) done++; });
+            var progressEl = document.getElementById('hk-modal-progress');
+            var digits = String(total).length; var d = String(done).padStart(digits,'0'); var t = String(total).padStart(digits,'0');
+            progressEl.textContent = 'Checklist Done: '+d+'/'+t;
+        }
+
+        function submitChecklist(idTask){
+            var body=document.getElementById('hk-modal-body');
+            var items = [];
+            body.querySelectorAll('.hk-item').forEach(function(it){
+                var id = it.getAttribute('data-id');
+                var passLabel = it.querySelector('label.opt-pass');
+                var input = document.getElementById(passLabel.getAttribute('for'));
+                items.push({ id_sop_step: parseInt(id,10), passed: !!(input && input.checked) });
+            });
+            // If no items, just show toast and close
+            if (!items.length){ showToast('No checklist to submit for this task.', 'info'); if(window.jQuery && jQuery.fn.modal){ jQuery('#hk-modal').modal('hide'); } return; }
+            var btn = document.getElementById('hk-done-task'); var old = btn.innerHTML; btn.disabled=true; btn.innerHTML = '<i class="icon-refresh icon-spin"></i> Submitting...';
+            var xhr = new XMLHttpRequest(); xhr.open('POST', endpoints.submit, true); xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded; charset=UTF-8');
+            xhr.onload = function(){ btn.disabled=false; btn.innerHTML=old; try{ var r=JSON.parse(xhr.responseText||'{}'); if(r && r.success){ showToast('Checklist submitted', 'success'); if(window.jQuery && jQuery.fn.modal){ jQuery('#hk-modal').modal('hide'); } fetchData(); } else { showToast('Submit failed','error'); } }catch(e){ showToast('Unexpected response','error'); } };
+            xhr.send('id_task='+encodeURIComponent(idTask)+'&items='+encodeURIComponent(JSON.stringify(items)));
+        }
+
+        // simple toast in this board
+        function showToast(message, type){
+            try {
+                var t = document.getElementById('inspection-toast');
+                if (!t) return alert(message);
+                t.className = 'toast-fixed alert ' + (type==='success'?'alert-success':(type==='error'?'alert-danger':'alert-info'));
+                t.textContent = message; t.style.display = 'block'; setTimeout(function(){ t.style.display='none'; }, 2000);
+            } catch (e) { alert(message); }
         }
 
         function fetchData(){
