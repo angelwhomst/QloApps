@@ -59,6 +59,9 @@ class SupervisorTasksController extends ModuleAdminController
         if ($showSuccess) {
             $this->context->controller->addJS(_PS_MODULE_DIR_.'housekeepingmanagement/views/js/success_fade.js');
         }
+        // Call supervisor-dashboard js and css
+        $this->context->controller->addJS($this->module->getPathUri().'views/js/supervisor-dashboard.js');
+        $this->context->controller->addCSS($this->module->getPathUri().'views/css/supervisor-dashboard.css');
     }
 
     /**
