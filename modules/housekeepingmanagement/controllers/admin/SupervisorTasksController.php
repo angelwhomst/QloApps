@@ -26,6 +26,7 @@ class SupervisorTasksController extends ModuleAdminController
         $this->bootstrap = true; 
         parent::__construct(); 
 
+
         $this->page_header_toolbar_btn['new_task'] = [
             'href' => $this->context->link->getAdminLink('SupervisorTasks') . '&addnewtask=1', 
             'desc' => $this->l('Assign Staff'), 
@@ -161,6 +162,8 @@ class SupervisorTasksController extends ModuleAdminController
             );
         }
     }
+
+    // Inspection-related backend intentionally omitted for now (placeholder UI only)
 
     /**
      * Process creating a new housekeeping task
