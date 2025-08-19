@@ -28,6 +28,47 @@
         #dateFilterBtn:hover {
             background: #f0f0f0;    
         }
+        .action-buttons {
+            display: flex;
+        }
+        .action-buttons .btn-action {
+            margin: 0; 
+        }
+        .btn-action {
+            background: #fff;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            font-size: 16px;
+            color: #555;
+            padding: 6px 10px;
+            transition: all 0.2s ease;
+            margin: 0;
+        }
+        .btn-action:first-child {
+            border-radius: 6px 0 0 6px; 
+        }
+        .btn-action:not(:first-child):not(:last-child) {
+            border-left: none; /* remove duplicate left border */
+        }
+        .btn-action:last-child {
+            border-radius: 0 6px 6px 0; 
+            border-left: none;
+        }
+        .btn-action:hover {
+            color: #007bff;
+            border-color: #007bff;
+            background: #f8f9fa;
+        }
+        th, td { 
+            padding: 12px; 
+            border-bottom: 1px solid #eee; 
+            text-align: left; 
+            word-wrap: break-word; 
+            background: #fff;   
+        }
+        thead { 
+            background: #f9f9f9; 
+        }
     </style>
 
     <!-- Summary Cards -->
@@ -35,7 +76,7 @@
         <div class="card" style="flex: 1; background: #fff; padding: 20px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <div>
                 <div style="font-size: 14px; color: #666;">Cleaned Rooms</div>
-                <div style="font-size: 28px; font-weight: bold;">100</div>
+                <div style="font-size: 28px; font-weight: bold;">{$summary.cleaned}</div>
             </div>
             <i class="fas fa-check-circle" style="font-size: 32px; color: green; margin-left: 15px;"></i>
         </div>
@@ -43,7 +84,7 @@
         <div class="card" style="flex: 1; background: #fff; padding: 20px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <div>
                 <div style="font-size: 14px; color: #666;">Not Cleaned</div>
-                <div style="font-size: 28px; font-weight: bold;">10</div>
+                <div style="font-size: 28px; font-weight: bold;">{$summary.not_cleaned}</div>
             </div>
             <i class="fas fa-ban" style="font-size: 32px; color: orange; margin-left: 15px;"></i>
         </div>
@@ -51,7 +92,7 @@
         <div class="card" style="flex: 1; background: #fff; padding: 20px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <div>
                 <div style="font-size: 14px; color: #666;">To Be Inspected</div>
-                <div style="font-size: 28px; font-weight: bold;">100</div>
+                <div style="font-size: 28px; font-weight: bold;">{$summary.to_be_inspected}</div>
             </div>
             <i class="fas fa-search" style="font-size: 32px; color: #007bff; margin-left: 15px;"></i>
         </div>
@@ -59,7 +100,7 @@
         <div class="card" style="flex: 1; background: #fff; padding: 20px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <div>
                 <div style="font-size: 14px; color: #666;">Failed Inspections</div>
-                <div style="font-size: 28px; font-weight: bold;">10</div>
+                <div style="font-size: 28px; font-weight: bold;">{$summary.failed_inspections}</div>
             </div>
             <i class="fas fa-times-circle" style="font-size: 32px; color: red; margin-left: 15px;"></i>
         </div>
@@ -110,6 +151,7 @@
                 <th style="width: 15%;">Start Time</th>
                 <th style="width: 10%;">Priority</th>
                 <th style="width: 15%;">Task Status</th>
+                <th style="width: 15%;">Actions</th>
             </tr>
         </thead>
         <tbody id="roomTableBody">
@@ -175,6 +217,13 @@
                         {$task.room_status}
                     </span>
                 </td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn-action view-btn" title="View" data-task-id="{$task.id_task}"><i class="fas fa-eye"></i></button>
+                        <button class="btn-action edit-btn" title="Edit" data-task-id="{$task.id_task}"><i class="fas fa-edit"></i></button>
+                        <button class="btn-action delete-btn" title="Delete" data-task-id="{$task.id_task}"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
             </tr>
         {/foreach}
         </tbody>
@@ -190,7 +239,8 @@
 
     <!-- Link -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
-    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <!-- Script -->
     {literal}
     <script>
@@ -247,11 +297,26 @@
 
         // Render table with pagination
         function renderTable() {
+            const oldNoDataRow = document.getElementById('noDataRow');
+            if (oldNoDataRow) oldNoDataRow.remove();
+
             filteredRows = getFilteredRows();
             const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
             if (currentPage > totalPages) currentPage = totalPages || 1;
 
             tableBody.querySelectorAll('tr').forEach(row => row.style.display = 'none');
+
+            if (filteredRows.length === 0) {
+                const noDataRow = document.createElement('tr');
+                noDataRow.id = 'noDataRow';
+                noDataRow.innerHTML = `<td colspan="8" style="text-align:center; padding:20px; color:#888;">
+                    No task assignment found
+                </td>`;
+                tableBody.appendChild(noDataRow);
+
+                renderPagination(0); // clear pagination
+                return;
+            }
 
             const start = (currentPage - 1) * rowsPerPage;
             const end = start + rowsPerPage;
@@ -262,7 +327,7 @@
 
         // Render pagination buttons dynamically
         function renderPagination(totalPages) {
-            paginationContainer.innerHTML = ''; // Clear old buttons
+            paginationContainer.innerHTML = ''; 
 
             const prevBtn = document.createElement('button');
             prevBtn.className = 'btn';
@@ -300,6 +365,71 @@
 
         // Initial render
         renderTable();
+    });
+      //Edit button
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const taskId = btn.getAttribute('data-task-id');
+            const url = new URL(window.location.href);
+            url.searchParams.set('edit_task', '1');
+            url.searchParams.set('id_task', taskId);
+            window.location.href = url.toString();
+        });
+    });
+
+    // Delete button
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const taskId = btn.getAttribute('data-task-id');
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "Do you really want to delete this task?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const ajaxUrl = window.location.href; // current page handles AJAX
+
+                    fetch(`${ajaxUrl}&ajax=1&action=deleteTask&id_task=${taskId}`, {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Remove the row from table
+                            const row = btn.closest('tr');
+                            row.remove();
+
+                            Swal.fire(
+                                'Deleted!',
+                                data.message,
+                                'success'
+                            );
+                        } else {
+                            Swal.fire(
+                                'Error!',
+                                data.message,
+                                'error'
+                            );
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        Swal.fire(
+                            'Error!',
+                            'An error occurred.',
+                            'error'
+                        );
+                    });
+                }
+            });
+        });
     });
     </script>
     {/literal}
