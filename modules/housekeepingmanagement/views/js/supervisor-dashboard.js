@@ -142,8 +142,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#E74C3C',
-                cancelButtonColor: '#25B9D7',
-                confirmButtonText: 'Yes, delete it!',
+                cancelButtonColor: '#7A7A7A',
+                confirmButtonText: 'Yes, delete it',
                 cancelButtonText: 'Cancel'
             }).then((result) => {
                 if (result.isConfirmed) {
