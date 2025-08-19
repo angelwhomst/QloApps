@@ -28,6 +28,12 @@
         #dateFilterBtn:hover {
             background: #f0f0f0;    
         }
+        /* Inspection UI styles */
+        .inspection-badge { background:#E0F0FF; color:#007bff; font-weight:bold; border-radius:12px; padding:4px 8px; display:inline-block; }
+        .state-indicator { margin-left:8px; display:inline-block; padding:4px 8px; border-radius:12px; font-weight:bold; }
+        .state-pass { background:#E7F8F0; color:#2e7d32; }
+        .state-fail { background:#FFF5E0; color:#b26a00; }
+        .toast-fixed { position:fixed; right:20px; bottom:20px; z-index:9999; min-width:260px; display:none; }
     </style>
 
     <!-- Summary Cards -->
@@ -35,7 +41,7 @@
         <div class="card" style="flex: 1; background: #fff; padding: 20px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <div>
                 <div style="font-size: 14px; color: #666;">Cleaned Rooms</div>
-                <div style="font-size: 28px; font-weight: bold;">100</div>
+                <div style="font-size: 28px; font-weight: bold;" id="count-cleaned">0</div>
             </div>
             <i class="fas fa-check-circle" style="font-size: 32px; color: green; margin-left: 15px;"></i>
         </div>
@@ -43,7 +49,7 @@
         <div class="card" style="flex: 1; background: #fff; padding: 20px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <div>
                 <div style="font-size: 14px; color: #666;">Not Cleaned</div>
-                <div style="font-size: 28px; font-weight: bold;">10</div>
+                <div style="font-size: 28px; font-weight: bold;" id="count-not-cleaned">0</div>
             </div>
             <i class="fas fa-ban" style="font-size: 32px; color: orange; margin-left: 15px;"></i>
         </div>
@@ -51,7 +57,7 @@
         <div class="card" style="flex: 1; background: #fff; padding: 20px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <div>
                 <div style="font-size: 14px; color: #666;">To Be Inspected</div>
-                <div style="font-size: 28px; font-weight: bold;">100</div>
+                <div style="font-size: 28px; font-weight: bold;" id="count-to-inspect">0</div>
             </div>
             <i class="fas fa-search" style="font-size: 32px; color: #007bff; margin-left: 15px;"></i>
         </div>
@@ -59,10 +65,11 @@
         <div class="card" style="flex: 1; background: #fff; padding: 20px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <div>
                 <div style="font-size: 14px; color: #666;">Failed Inspections</div>
-                <div style="font-size: 28px; font-weight: bold;">10</div>
+                <div style="font-size: 28px; font-weight: bold;" id="count-failed">0</div>
             </div>
             <i class="fas fa-times-circle" style="font-size: 32px; color: red; margin-left: 15px;"></i>
         </div>
+
     </div>
 
 
@@ -99,11 +106,111 @@
         </div>
     </div>
 
+    <!-- Inspections (Frontend-only mock data) -->
+    <div class="panel" style="margin-top:10px; margin-bottom:20px;" data-inspection-ui="true">
+        <div class="panel-heading">
+            <i class="icon-search"></i> Inspections
+        </div>
+        <div class="table-responsive-row clearfix">
+            <table class="table" id="inspections-table" aria-label="Rooms to be inspected" data-inspection-placeholder="list">
+                <thead>
+                    <tr>
+                        <th>Room Number</th>
+                        <th>Assigned Staff</th>
+                        <th>Room Type</th>
+                        <th>Completed Time</th>
+                        <th>Status</th>
+                        <th class="text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="inspections-body"></tbody>
+            </table>
+        </div>
+        <div id="inspections-empty" class="alert alert-info" style="display:none;" role="status" aria-live="polite">
+            No rooms are currently pending inspection. Once housekeeping marks rooms as cleaned, they will appear here for inspection.
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="inspection-toast" class="toast-fixed alert" role="status" aria-live="polite"></div>
+
+    <!-- Inspection Detail Modal -->
+    <div class="modal fade" id="inspectionDetailModal" tabindex="-1" role="dialog" aria-labelledby="inspectionDetailTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="inspectionDetailTitle">Room Inspection</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <h3 style="margin-top:0;">
+                                <span id="insp-room-number">Room —</span>
+                                <small>— <span id="insp-room-type">Type</span></small>
+                            </h3>
+                        </div>
+                        <div class="col-lg-6 text-right">
+                            <span class="inspection-badge" id="insp-status-badge">To Be Inspected</span>
+                        </div>
+                    </div>
+                    <div class="row" style="margin-top:10px;">
+                        <div class="col-lg-3 col-md-6" style="margin-bottom:10px;">
+                            <div class="well" style="margin:0;">
+                                <div style="color:#666;">Assigned Staff</div>
+                                <div style="font-weight:700;" id="insp-staff">—</div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6" style="margin-bottom:10px;">
+                            <div class="well" style="margin:0;">
+                                <div style="color:#666;">Completed Cleaning</div>
+                                <div style="font-weight:700;" id="insp-completed">—</div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-md-12" style="margin-bottom:10px;">
+                            <div class="well" id="insp-progress" aria-live="polite" style="margin:0;display:flex;justify-content:space-between;align-items:center;">
+                                <strong>Checklist Progress</strong>
+                                <span id="insp-progress-text">00/00 tasks done</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row" id="insp-checklist"></div>
+                </div>
+                <div class="modal-footer" style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <button type="button" class="btn btn-default" id="insp-add-remarks" aria-haspopup="dialog"><i class="icon-edit"></i> Add Remarks</button>
+                    <button type="button" class="btn btn-danger" id="insp-reject"><i class="icon-remove"></i> Reject</button>
+                    <button type="button" class="btn btn-success" id="insp-approve"><i class="icon-check"></i> Approve</button>
+                    <span id="insp-loading" class="label label-info" style="display:none;">Submitting...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Remarks Modal -->
+    <div class="modal fade" id="remarksModal" tabindex="-1" role="dialog" aria-labelledby="remarksTitle" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="remarksTitle">Inspection Remarks</h4>
+                </div>
+                <div class="modal-body">
+                    <textarea id="remarksText" class="form-control" rows="5" placeholder="Optional notes..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" data-dismiss="modal">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Table -->
     <table>
         <thead>
             <tr>
-                <th style="width: 10%;">Room#</th>
+                <th style="width: 10%;">Room Number</th>
                 <th style="width: 20%;">Assigned Staff</th>
                 <th style="width: 15%;">Room Floor</th>
                 <th style="width: 15%;">Due Date</th>
@@ -180,6 +287,7 @@
         </tbody>
     </table>
 
+
     <!-- Pagination -->
     <div style="margin-top: 15px; text-align: right;">
         <button class="btn">Previous</button>
@@ -195,6 +303,256 @@
     {literal}
     <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Placeholder endpoints for future backend integration
+        var API_ROOM_LIST_URL = null; // e.g., '/admin123/index.php?controller=SupervisorTasks&ajax=1&action=ListRoomsToInspect'
+        var API_APPROVE_URL = null;   // e.g., '/admin123/index.php?controller=SupervisorTasks&ajax=1&action=SubmitInspection'
+        var API_REJECT_URL = null;    // same as above, decision=reject
+        // Mock data for inspections (frontend-only)
+        var inspectionRooms = [
+            { id: 1, roomNumber: '101', staff: 'Staff Name', roomType: 'Deluxe', completedAt: '2025-08-19 15:22', status: 'To Be Inspected', checklist: [
+                { id: 'beds', label: 'Bed linen fresh and tidy', passed: false },
+                { id: 'bath', label: 'Bathroom sanitized', passed: false },
+                { id: 'dust', label: 'No dust on surfaces', passed: false },
+                { id: 'trash', label: 'Trash emptied', passed: false },
+                { id: 'amen', label: 'Amenities replenished', passed: false },
+                { id: 'vac', label: 'Floor vacuumed/mopped', passed: false },
+                { id: 'mini', label: 'Minibar checked', passed: false },
+                { id: 'tv', label: 'TV and remote working', passed: false },
+                { id: 'ac', label: 'AC/heater functioning', passed: false },
+                { id: 'win', label: 'Windows clean', passed: false }
+            ]},
+            { id: 2, roomNumber: '205', staff: 'Staff Name', roomType: 'Suite', completedAt: '2025-08-19 14:05', status: 'To Be Inspected', checklist: [
+                { id: 'beds', label: 'Bed linen fresh and tidy', passed: false },
+                { id: 'bath', label: 'Bathroom sanitized', passed: true },
+                { id: 'dust', label: 'No dust on surfaces', passed: true },
+                { id: 'trash', label: 'Trash emptied', passed: false },
+                { id: 'amen', label: 'Amenities replenished', passed: false },
+                { id: 'vac', label: 'Floor vacuumed/mopped', passed: false },
+                { id: 'mini', label: 'Minibar checked', passed: false },
+                { id: 'tv', label: 'TV and remote working', passed: true },
+                { id: 'ac', label: 'AC/heater functioning', passed: true },
+                { id: 'win', label: 'Windows clean', passed: false }
+            ]},
+            { id: 3, roomNumber: '310', staff: 'Staff Name', roomType: 'Standard', completedAt: '2025-08-19 16:10', status: 'To Be Inspected', checklist: [
+                { id: 'beds', label: 'Bed linen fresh and tidy', passed: true },
+                { id: 'bath', label: 'Bathroom sanitized', passed: true },
+                { id: 'dust', label: 'No dust on surfaces', passed: true },
+                { id: 'trash', label: 'Trash emptied', passed: true },
+                { id: 'amen', label: 'Amenities replenished', passed: true },
+                { id: 'vac', label: 'Floor vacuumed/mopped', passed: true },
+                { id: 'mini', label: 'Minibar checked', passed: false },
+                { id: 'tv', label: 'TV and remote working', passed: true },
+                { id: 'ac', label: 'AC/heater functioning', passed: true },
+                { id: 'win', label: 'Windows clean', passed: true }
+            ]}
+        ];
+
+        var inspTableBody = document.getElementById('inspections-body');
+        var inspTable = document.getElementById('inspections-table');
+        var inspEmpty = document.getElementById('inspections-empty');
+        var toast = document.getElementById('inspection-toast');
+
+        var modal = document.getElementById('inspectionDetailModal');
+        var inspRoomNumber = document.getElementById('insp-room-number');
+        var inspRoomType = document.getElementById('insp-room-type');
+        var inspStaff = document.getElementById('insp-staff');
+        var inspCompleted = document.getElementById('insp-completed');
+        var inspProgressText = document.getElementById('insp-progress-text');
+        var inspChecklist = document.getElementById('insp-checklist');
+        var inspApprove = document.getElementById('insp-approve');
+        var inspReject = document.getElementById('insp-reject');
+        var inspAddRemarks = document.getElementById('insp-add-remarks');
+        var inspLoading = document.getElementById('insp-loading');
+        var remarksText = document.getElementById('remarksText');
+        var countCleaned = document.getElementById('count-cleaned');
+        var countNotCleaned = document.getElementById('count-not-cleaned');
+        var countToInspect = document.getElementById('count-to-inspect');
+        var countFailed = document.getElementById('count-failed');
+
+        var currentRoomId = null;
+
+        function showToast(message, type) {
+            toast.className = 'toast-fixed alert ' + (type === 'success' ? 'alert-success' : (type === 'error' ? 'alert-danger' : 'alert-info'));
+            toast.textContent = message;
+            toast.style.display = 'block';
+            setTimeout(function(){ toast.style.display = 'none'; }, 2500);
+        }
+
+        function pad(num, size) {
+            var s = String(num);
+            while (s.length < size) s = '0' + s;
+            return s;
+        }
+
+        function updateCounts(){
+            // For demo, counts based on the mock list
+            var toInspect = inspectionRooms.length;
+            var cleaned = 0; // not tracked in mock list
+            var notCleaned = 0; // not tracked in mock list
+            var failed = 0; // not tracked in mock list
+            countToInspect.textContent = toInspect;
+            countCleaned.textContent = cleaned;
+            countNotCleaned.textContent = notCleaned;
+            countFailed.textContent = failed;
+        }
+
+        function renderList() {
+            inspTableBody.innerHTML = '';
+            if (!inspectionRooms.length) {
+                inspTable.style.display = 'none';
+                inspEmpty.style.display = 'block';
+                return;
+            }
+            inspTable.style.display = '';
+            inspEmpty.style.display = 'none';
+            inspectionRooms.forEach(function(r){
+                var tr = document.createElement('tr');
+                tr.setAttribute('data-id', r.id);
+                tr.setAttribute('tabindex', '0');
+                tr.innerHTML = '<td>'+r.roomNumber+'</td>'+
+                    '<td>'+r.staff+'</td>'+
+                    '<td>'+r.roomType+'</td>'+
+                    '<td>'+r.completedAt+'</td>'+
+                    '<td><span class="inspection-badge">'+r.status+'</span></td>'+
+                    '<td class="text-right">'+
+                        '<button class="btn btn-default btn-sm inspect-btn" data-id="'+r.id+'" aria-label="Inspect room '+r.roomNumber+'">'+
+                            '<i class="icon-eye-open"></i> Inspect'+
+                        '</button>'+
+                    '</td>';
+                inspTableBody.appendChild(tr);
+            });
+        }
+
+        function openDetail(roomId) {
+            var r = inspectionRooms.find(function(x){ return x.id === roomId; });
+            if (!r) return;
+            currentRoomId = roomId;
+            inspRoomNumber.textContent = 'Room '+r.roomNumber;
+            inspRoomType.textContent = r.roomType;
+            inspStaff.textContent = r.staff;
+            inspCompleted.textContent = r.completedAt;
+
+            inspChecklist.innerHTML = '';
+            r.checklist.forEach(function(item){
+                var col = document.createElement('div');
+                col.className = 'col-lg-6 col-md-12';
+                col.style.marginBottom = '10px';
+                col.innerHTML =
+                    '<div class="well" style="display:flex; align-items:center; justify-content:space-between;">'+
+                        '<div><label class="control-label" style="margin:0;">'+item.label+'</label></div>'+
+                        '<div>'+ 
+                            '<input type="checkbox" '+(item.passed?'checked':'')+' class="insp-toggle" role="switch" aria-checked="'+(item.passed?'true':'false')+'" aria-label="'+item.label+'" data-id="'+item.id+'" />'+
+                            '<span class="state-indicator '+(item.passed?'state-pass':'state-fail')+'">'+(item.passed?'Passed':'Failed')+'</span>'+
+                        '</div>'+ 
+                    '</div>';
+                inspChecklist.appendChild(col);
+            });
+
+            updateProgress();
+
+            if (window.jQuery && jQuery.fn.modal) {
+                jQuery(modal).modal('show');
+            }
+        }
+
+        function updateProgress() {
+            var r = inspectionRooms.find(function(x){ return x.id === currentRoomId; });
+            if (!r) return;
+            var total = r.checklist.length;
+            var digits = String(total).length;
+            var passed = r.checklist.filter(function(i){ return !!i.passed; }).length;
+            inspProgressText.textContent = pad(passed, digits) + '/' + pad(total, digits) + ' tasks done';
+        }
+
+        // Open by clicking inspect button
+        inspTableBody.addEventListener('click', function(e){
+            var btn = e.target.closest('.inspect-btn');
+            if (!btn) return;
+            openDetail(parseInt(btn.getAttribute('data-id')));
+        });
+
+        // Also open by clicking a row or pressing Enter/Space (accessibility)
+        inspTableBody.addEventListener('click', function(e){
+            var row = e.target.closest('tr');
+            if (!row) return;
+            if (e.target.closest('.inspect-btn')) return; // already handled
+            var id = parseInt(row.getAttribute('data-id'));
+            if (id) openDetail(id);
+        });
+        inspTableBody.addEventListener('keydown', function(e){
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            var row = e.target.closest('tr');
+            if (!row) return;
+            var id = parseInt(row.getAttribute('data-id'));
+            if (id) {
+                e.preventDefault();
+                openDetail(id);
+            }
+        });
+
+        inspChecklist.addEventListener('change', function(e){
+            if (!e.target.classList.contains('insp-toggle')) return;
+            var r = inspectionRooms.find(function(x){ return x.id === currentRoomId; });
+            if (!r) return;
+            var id = e.target.getAttribute('data-id');
+            var item = r.checklist.find(function(i){ return i.id === id; });
+            if (!item) return;
+            item.passed = e.target.checked;
+            e.target.setAttribute('aria-checked', item.passed ? 'true' : 'false');
+            var label = e.target.parentNode.querySelector('.state-indicator');
+            label.textContent = item.passed ? 'Passed' : 'Failed';
+            label.className = 'state-indicator ' + (item.passed ? 'state-pass' : 'state-fail');
+            updateProgress();
+        });
+
+        function simulateSubmit(decision) {
+            inspLoading.style.display = 'inline-block';
+            inspApprove.disabled = true;
+            inspReject.disabled = true;
+            var startTextA = inspApprove.innerHTML;
+            var startTextR = inspReject.innerHTML;
+            inspApprove.innerHTML = '<i class="icon-refresh icon-spin"></i> Approving...';
+            inspReject.innerHTML = '<i class="icon-refresh icon-spin"></i> Rejecting...';
+            setTimeout(function(){
+                inspectionRooms = inspectionRooms.filter(function(x){ return x.id !== currentRoomId; });
+                renderList();
+                updateCounts();
+                inspLoading.style.display = 'none';
+                inspApprove.disabled = false;
+                inspReject.disabled = false;
+                inspApprove.innerHTML = startTextA;
+                inspReject.innerHTML = startTextR;
+                if (window.jQuery && jQuery.fn.modal) { jQuery(modal).modal('hide'); }
+                showToast(decision === 'approve' ? 'Inspection approved' : 'Inspection rejected', 'success');
+            }, 900);
+        }
+
+        function confirmSubmit(decision) {
+            var title = decision === 'approve' ? 'Approve inspection?' : 'Reject inspection?';
+            var text = decision === 'approve' ? 'This will mark the room as Cleaned.' : 'This will mark the room as Failed Inspection.';
+            var confirmText = decision === 'approve' ? 'Approve' : 'Reject';
+            if (window.Swal && Swal.fire) {
+                Swal.fire({
+                    title: title,
+                    text: text,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: confirmText,
+                    cancelButtonText: 'Cancel'
+                }).then(function(result){
+                    if (result.isConfirmed) simulateSubmit(decision);
+                });
+            } else {
+                if (window.confirm(title + '\n' + text)) simulateSubmit(decision);
+            }
+        }
+        inspApprove.addEventListener('click', function(){ confirmSubmit('approve'); });
+        inspReject.addEventListener('click', function(){ confirmSubmit('reject'); });
+        inspAddRemarks.addEventListener('click', function(){ if (window.jQuery && jQuery.fn.modal) { jQuery('#remarksModal').modal('show'); } });
+
+        renderList();
+        updateCounts();
+
         const from = document.querySelector('.from-date');
         const to = document.querySelector('.to-date');
         const btn = document.getElementById('dateFilterBtn');

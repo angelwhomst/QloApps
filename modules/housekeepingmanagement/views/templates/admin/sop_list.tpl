@@ -5,7 +5,7 @@
         <div class="panel-heading-action">
             <div class="btn-group">
                 <a href="{$link->getAdminLink('AdminSOPManagement')|escape:'html':'UTF-8'}&addhousekeeping_sop" class="btn btn-primary btn-add-sop" >
-                    <i class="icon-plus-circle"></i> {l s='Add New SOP' mod='housekeepingmanagement'}
+                    <i class="icon-plus-circle"></i> {l s='hahahaha' mod='housekeepingmanagement'}
                 </a>
             </div>
         </div>
