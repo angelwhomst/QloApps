@@ -110,6 +110,7 @@
                 <th style="width: 15%;">Start Time</th>
                 <th style="width: 10%;">Priority</th>
                 <th style="width: 15%;">Task Status</th>
+                <th style="width: 15%;">SOP</th>
             </tr>
         </thead>
         <tbody id="roomTableBody">
@@ -174,6 +175,15 @@
                     <span style="color:{$statusColor}; background:{$statusBg}; font-weight:bold; border-radius:12px; padding:4px 8px; display:inline-block;">
                         {$task.room_status}
                     </span>
+                </td>
+                <td>
+                    {if $task.sop_title}
+                        <button class="btn btn-info btn-sop-details" data-sop-title="{$task.sop_title|escape:'html':'UTF-8'}" data-sop-steps='{json_encode($task.sop_steps)}'>
+                            {$task.sop_title|escape:'html':'UTF-8'}
+                        </button>
+                    {else}
+                        N/A
+                    {/if}
                 </td>
             </tr>
         {/foreach}
@@ -300,6 +310,43 @@
 
         // Initial render
         renderTable();
+    });
+    </script>
+    {/literal}
+
+    <!-- SOP Steps Modal -->
+    <div id="sopStepsModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4); align-items:center; justify-content:center; z-index:9999;">
+        <div style="background:#fff; border-radius:8px; max-width:400px; width:90%; margin:auto; padding:24px; position:relative;">
+            <h3 id="modalSopTitle"></h3>
+            <ol id="modalSopSteps"></ol>
+            <button id="closeSopModal" class="btn" style="margin-top:16px;">Close</button>
+        </div>
+    </div>
+
+    {literal}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.btn-sop-details').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var title = btn.getAttribute('data-sop-title');
+                var steps = JSON.parse(btn.getAttribute('data-sop-steps'));
+                document.getElementById('modalSopTitle').innerText = title;
+                var ol = document.getElementById('modalSopSteps');
+                ol.innerHTML = '';
+                steps.forEach(function(step) {
+                    var li = document.createElement('li');
+                    li.textContent = step.step_description;
+                    ol.appendChild(li);
+                });
+                document.getElementById('sopStepsModal').style.display = 'flex';
+            });
+        });
+        document.getElementById('closeSopModal').onclick = function() {
+            document.getElementById('sopStepsModal').style.display = 'none';
+        };
+        document.getElementById('sopStepsModal').onclick = function(e) {
+            if (e.target === this) this.style.display = 'none';
+        };
     });
     </script>
     {/literal}
