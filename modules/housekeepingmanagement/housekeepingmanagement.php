@@ -34,7 +34,8 @@ class HousekeepingManagement extends Module
         if (!parent::install() 
             || !$this->registerHook('displayBackOfficeHeader')
             || !$this->registerHook('actionAdminControllerSetMedia')
-            || !$this->registerHook('addWebserviceResources') 
+            || !$this->registerHook('addWebserviceResources')
+            || !$this->registerHook('displayEmployeeMenu') 
             || !$this->installDb()
             || !$this->installTab()
             || !$this->registerSpecificManagementClass()
@@ -128,6 +129,29 @@ class HousekeepingManagement extends Module
                 ON UPDATE CASCADE
         ) ENGINE='._MYSQL_ENGINE_.' DEFAULT CHARSET=utf8;';
 
+        // create tracj step status within tasks
+        $sql[] = "CREATE TABLE IF NOT EXISTS `"._DB_PREFIX_."housekeeping_task_step` (
+            `id_task_step` int(11) NOT NULL AUTO_INCREMENT,
+            `id_task` int(11) NOT NULL,
+            `id_sop_step` int(11) NOT NULL,
+            `status` enum('not_started','passed','failed') NOT NULL DEFAULT 'not_started',
+            `notes` text,
+            `date_add` datetime NOT NULL,
+            `date_upd` datetime NOT NULL,
+            PRIMARY KEY (`id_task_step`),
+            KEY `id_task` (`id_task`),
+            KEY `id_sop_step` (`id_sop_step`),
+            CONSTRAINT `fk_task_step_task` FOREIGN KEY (`id_task`) 
+                REFERENCES `"._DB_PREFIX_."housekeeping_task_assignment` (`id_task`)
+                ON DELETE CASCADE,
+            CONSTRAINT `fk_task_step_sop_step` FOREIGN KEY (`id_sop_step`) 
+                REFERENCES `"._DB_PREFIX_."housekeeping_sop_step` (`id_sop_step`)
+                ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8";
+
+        $sql[] = 'ALTER TABLE `qlo_housekeeping_task_assignment` 
+        ADD COLUMN `status` enum(\'to_do\',\'in_progress\',\'done\') NOT NULL DEFAULT \'to_do\' AFTER `priority`';
+        
         // execute all sql queries
         foreach ($sql as $query) {
             $return &= Db::getInstance()->execute($query);
@@ -142,6 +166,7 @@ class HousekeepingManagement extends Module
     public function uninstallDb()
     {
         $sql = array();
+        $sql[] = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.'housekeeping_task_step`';
         $sql[] = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.'housekeeping_task_assignment`';
         $sql[] = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.'housekeeping_room_status`';
         $sql[] = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.'housekeeping_sop_step`';
@@ -221,7 +246,9 @@ class HousekeepingManagement extends Module
         if (
             $controller == 'AdminHousekeepingManagement' || 
             $controller == 'AdminSOPManagement' || 
-            $controller == 'SupervisorTasks'
+            $controller == 'SupervisorTasks' ||
+            $controller == 'HousekeeperDashboard' ||
+            $controller == 'HousekeeperTaskDetail'
         ) {
             // add SweetAlert2
             $this->context->controller->addJquery();
@@ -243,7 +270,9 @@ class HousekeepingManagement extends Module
         if (
             $controller == 'AdminHousekeepingManagement' || 
             $controller == 'AdminSOPManagement' || 
-            $controller == 'SupervisorTasks'
+            $controller == 'SupervisorTasks' ||
+            $controller == 'HousekeeperDashboard' ||
+            $controller == 'HousekeeperTaskDetail'
         ) {
             // add SweetAlert2
             $this->context->controller->addJquery();
@@ -304,8 +333,47 @@ class HousekeepingManagement extends Module
         $taskTab->module = $this->name;
         $taskTab->add();
 
-        // Set the default controller shown when clicking the main tab
-        Configuration::updateValue('PS_DEFAULT_ADMIN_HOUSEKEEPING_TAB', 'AdminSOPManagement');
+        // sub-tab for Housekeeper Dashboard
+        $hkDashboardTab = new Tab();
+        $hkDashboardTab->active = 1;
+        $hkDashboardTab->class_name = 'HousekeeperDashboard';
+        $hkDashboardTab->name = array();
+        foreach (Language::getLanguages(true) as $lang) {
+            $hkDashboardTab->name[$lang['id_lang']] = 'Housekeeper Dashboard';
+        }
+        $hkDashboardTab->id_parent = (int)Tab::getIdFromClassName('AdminHousekeepingManagement');
+        $hkDashboardTab->module = $this->name;
+        $hkDashboardTab->add();
+        // Assign to housekeeper profile
+        // Db::getInstance()->execute('
+        //     INSERT IGNORE INTO '._DB_PREFIX_.'access (id_profile, id_tab, view, `add`, `edit`, `delete`)
+        //     VALUES (3, '.(int)$hkDashboardTab->id.', 1, 0, 0, 0)
+        // ');
+
+        // sub-tab for Housekeeper Task Detail
+        $hkTaskDetailTab = new Tab();
+        $hkTaskDetailTab->active = 1;
+        $hkTaskDetailTab->class_name = 'HousekeeperTaskDetail'; 
+        $hkTaskDetailTab->name = array();
+        foreach (Language::getLanguages(true) as $lang) {
+            $hkTaskDetailTab->name[$lang['id_lang']] = 'Task Detail';
+        }
+        $hkTaskDetailTab->id_parent = (int)Tab::getIdFromClassName('AdminHousekeepingManagement');
+        $hkTaskDetailTab->module = $this->name;
+        $hkTaskDetailTab->add();
+        // Assign to housekeeper profile
+        // Db::getInstance()->execute('
+        //     INSERT IGNORE INTO '._DB_PREFIX_.'access (id_profile, id_tab, view, `add`, `edit`, `delete`)
+        //     VALUES (3, '.(int)$hkTaskDetailTab->id.', 1, 0, 0, 0)
+        // ');
+
+        // set the default controller shown when clicking the main tab
+        // show Housekeeper Dashboard for housekeeper profile, SOP Management for others
+        if ($this->context && $this->context->employee && (int)$this->context->employee->id_profile === 3) {
+            Configuration::updateValue('PS_DEFAULT_ADMIN_HOUSEKEEPING_TAB', 'HousekeeperDashboard');
+        } else {
+            Configuration::updateValue('PS_DEFAULT_ADMIN_HOUSEKEEPING_TAB', 'AdminSOPManagement');
+        }
 
         return true;
     }
