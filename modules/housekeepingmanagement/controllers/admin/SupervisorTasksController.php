@@ -35,13 +35,6 @@ class SupervisorTasksController extends ModuleAdminController
             'desc' => $this->l('Assign Staff'), 
             'icon' => 'process-icon-new', 
         ];
-
-        // Quick access to clean Task Board view
-        $this->page_header_toolbar_btn['board_view'] = [
-            'href' => $this->context->link->getAdminLink('SupervisorTasks') . '&board=1',
-            'desc' => $this->l('Open Task Board'),
-            'icon' => 'icon-list',
-        ];
     }
 
 
@@ -60,18 +53,6 @@ class SupervisorTasksController extends ModuleAdminController
         if (Tools::isSubmit('addnewtask') && isset($this->page_header_toolbar_btn['new_task'])) {
             unset($this->page_header_toolbar_btn['new_task']);
         }
-
-        // If viewing Task Board, show a back button instead of the board button
-        if (Tools::getValue('board')) {
-            if (isset($this->page_header_toolbar_btn['board_view'])) {
-                unset($this->page_header_toolbar_btn['board_view']);
-            }
-            $this->page_header_toolbar_btn['back_to_list'] = [
-                'href' => $this->context->link->getAdminLink('SupervisorTasks'),
-                'desc' => $this->l('Back to Assignments'),
-                'icon' => 'process-icon-back',
-            ];
-        }
     }
 
 
@@ -83,15 +64,9 @@ class SupervisorTasksController extends ModuleAdminController
     {
         if (!Tools::isSubmit('addnewtask')) {
 
-            // Render clean Task Board page when requested
-            if (Tools::getValue('board')) {
-                return $this->context->smarty->fetch(
-                    _PS_MODULE_DIR_ . 'housekeepingmanagement/views/templates/admin/task_board.tpl'
-                );
-            }
-
             // Fetch data for table for supervisor dashboard
             $sql = 'SELECT 
+                        t.id_task,
                         r.room_num AS room_number,
                         r.floor AS floor_number,  
                         e.firstname AS staff_firstname,
@@ -111,7 +86,8 @@ class SupervisorTasksController extends ModuleAdminController
             $tasks = Db::getInstance()->executeS($sql);
 
             $this->context->smarty->assign([
-                'tasks' => $tasks
+                'tasks' => $tasks,
+                'link' => $this->context->link
             ]);
 
             return $this->context->smarty->fetch(
@@ -279,6 +255,39 @@ class SupervisorTasksController extends ModuleAdminController
             $detail = $this->getTaskDetail($idTask);
             $this->ajaxDie(json_encode($detail));
         }
+
+        // AJAX: Submit full checklist for a task
+        if (Tools::getIsset('ajax') && Tools::getValue('action') === 'submitChecklist') {
+            $idTask = (int)Tools::getValue('id_task');
+            $rawItems = Tools::getValue('items');
+            $items = [];
+            if ($rawItems) {
+                $decoded = json_decode($rawItems, true);
+                if (is_array($decoded)) {
+                    $items = $decoded;
+                }
+            }
+
+            $updated = 0; $total = 0; $done = 0;
+            foreach ($items as $it) {
+                if (!isset($it['id_sop_step'])) { continue; }
+                $total++;
+                $idSopStep = (int)$it['id_sop_step'];
+                $passed = !empty($it['passed']);
+                $status = $passed ? 'Completed' : 'Not Executed';
+                if (TaskStepStatusModel::upsertStatus($idTask, $idSopStep, $status)) {
+                    $updated++;
+                    if ($passed) { $done++; }
+                }
+            }
+
+            $this->ajaxDie(json_encode([
+                'success' => true,
+                'updated' => $updated,
+                'done' => $done,
+                'total' => $total,
+            ]));
+        }
     }
 
     protected function buildTaskBoardData()
@@ -402,6 +411,8 @@ class SupervisorTasksController extends ModuleAdminController
         $task = Db::getInstance()->getRow('SELECT t.*, r.room_num, pl.name as room_type FROM `'._DB_PREFIX_.'housekeeping_task_assignment` t INNER JOIN `'._DB_PREFIX_.'htl_room_information` r ON r.id=t.id_room INNER JOIN `'._DB_PREFIX_.'product_lang` pl ON (pl.id_product=r.id_product AND pl.id_lang='.(int)$this->context->language->id.') WHERE t.id_task='.(int)$idTask);
         if (!$task) return ['success' => false];
         $steps = $this->getStepsForRoomType((int)$task['id_task'], (int)$task['id_room']);
+        $completed = 0; $total = count($steps);
+        foreach ($steps as $st) { if ($st['status'] === 'Completed') { $completed++; } }
         return [
             'success' => true,
             'task' => [
@@ -409,7 +420,10 @@ class SupervisorTasksController extends ModuleAdminController
                 'room' => ['number' => $task['room_num'], 'type' => $task['room_type']],
                 'priority' => $task['priority'],
                 'deadline' => $task['deadline'],
+                'start' => isset($task['date_add']) ? $task['date_add'] : null,
+                'notes' => isset($task['special_notes']) ? $task['special_notes'] : '',
                 'steps' => $steps,
+                'progress' => ['done' => $completed, 'total' => $total],
             ]
         ];
     }
