@@ -120,6 +120,19 @@ class HousekeepingManagement extends Module
                 ON UPDATE CASCADE
         ) ENGINE='._MYSQL_ENGINE_.' DEFAULT CHARSET=utf8;';
 
+        // create Task Step Status table
+        $sql[] = 'CREATE TABLE IF NOT EXISTS `'._DB_PREFIX_.'housekeeping_task_step_status` (
+            `id_task_step_status` int(11) NOT NULL AUTO_INCREMENT,
+            `id_task` int(11) NOT NULL,
+            `id_sop_step` int(11) NOT NULL,
+            `status` enum("Not Executed","In Progress","Completed") NOT NULL DEFAULT "Not Executed",
+            `date_upd` datetime NOT NULL,
+            PRIMARY KEY (`id_task_step_status`),
+            UNIQUE KEY `uniq_task_step` (`id_task`, `id_sop_step`),
+            KEY `id_task` (`id_task`),
+            KEY `id_sop_step` (`id_sop_step`)
+        ) ENGINE='._MYSQL_ENGINE_.' DEFAULT CHARSET=utf8;';
+
         // execute all sql queries
         foreach ($sql as $query) {
             $return &= Db::getInstance()->execute($query);

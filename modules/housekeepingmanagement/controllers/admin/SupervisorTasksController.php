@@ -5,6 +5,9 @@ if (!defined('_PS_VERSION_')) {
 
 require_once(_PS_MODULE_DIR_ . 'housekeepingmanagement/classes/TaskAssignmentModel.php');
 require_once(_PS_MODULE_DIR_.'hotelreservationsystem/classes/HotelRoomInformation.php');
+require_once(_PS_MODULE_DIR_ . 'housekeepingmanagement/classes/SOPModel.php');
+require_once(_PS_MODULE_DIR_ . 'housekeepingmanagement/classes/SOPStepModel.php');
+require_once(_PS_MODULE_DIR_ . 'housekeepingmanagement/classes/TaskStepStatusModel.php');
 
 /**
  * SupervisorTasksController
@@ -222,6 +225,167 @@ class SupervisorTasksController extends ModuleAdminController
         if (Tools::isSubmit('submit_task')) {
             $this->processCreateTask();
         }
+
+        // AJAX: Fetch tasks for board
+        if (Tools::getIsset('ajax') && Tools::getValue('action') === 'fetchTasks') {
+            $this->ajaxDie(json_encode($this->buildTaskBoardData()));
+        }
+
+        // AJAX: Toggle step status
+        if (Tools::getIsset('ajax') && Tools::getValue('action') === 'toggleStep') {
+            $idTask = (int)Tools::getValue('id_task');
+            $idSopStep = (int)Tools::getValue('id_sop_step');
+            $statusParam = Tools::getValue('status');
+            $allowed = ['Not Executed','In Progress','Completed'];
+            if ($statusParam !== null && in_array($statusParam, $allowed)) {
+                $newStatus = $statusParam;
+            } else {
+                $checked = (bool)Tools::getValue('checked');
+                $newStatus = $checked ? 'Completed' : 'Not Executed';
+            }
+            $ok = TaskStepStatusModel::upsertStatus($idTask, $idSopStep, $newStatus);
+            $this->ajaxDie(json_encode(['success' => (bool)$ok]));
+        }
+
+        // AJAX: Get task detail
+        if (Tools::getIsset('ajax') && Tools::getValue('action') === 'getTaskDetail') {
+            $idTask = (int)Tools::getValue('id_task');
+            $detail = $this->getTaskDetail($idTask);
+            $this->ajaxDie(json_encode($detail));
+        }
+    }
+
+    protected function buildTaskBoardData()
+    {
+        $search = trim(Tools::getValue('q'));
+        $status = Tools::getValue('status');
+        $priority = Tools::getValue('priority');
+        $date = Tools::getValue('date');
+
+        $where = [];
+        if ($priority) {
+            $where[] = 't.priority = "'.pSQL($priority).'"';
+        }
+        if ($date) {
+            $where[] = 'DATE(t.deadline) = "'.pSQL($date).'"';
+        }
+        if ($search) {
+            $where[] = '(r.room_num LIKE "%'.pSQL($search).'%" OR pl.name LIKE "%'.pSQL($search).'%")';
+        }
+
+        $sql = 'SELECT 
+                    t.id_task,
+                    t.priority,
+                    t.deadline,
+                    t.special_notes,
+                    r.id as id_room,
+                    r.room_num,
+                    pl.name as room_type,
+                    s.status as room_status
+                FROM '._DB_PREFIX_.'housekeeping_task_assignment t
+                INNER JOIN '._DB_PREFIX_.'htl_room_information r ON r.id = t.id_room
+                INNER JOIN '._DB_PREFIX_.'product_lang pl ON (pl.id_product = r.id_product AND pl.id_lang = '.(int)$this->context->language->id.')
+                INNER JOIN '._DB_PREFIX_.'housekeeping_room_status s ON s.id_room_status = t.id_room_status
+                '.(count($where)?' WHERE '.implode(' AND ', $where):'').'
+                ORDER BY t.deadline ASC';
+
+        $rows = Db::getInstance()->executeS($sql);
+
+        // attach steps for each task via SOP of room type if available
+        $result = [
+            'todo' => [],
+            'inprogress' => [],
+            'done' => [],
+            'summary' => ['done' => 0, 'total' => 0],
+        ];
+
+        foreach ($rows as $row) {
+            $steps = $this->getStepsForRoomType((int)$row['id_task'], (int)$row['id_room']);
+            $completed = 0; $inProgress = 0; $totalSteps = count($steps);
+            foreach ($steps as $st) {
+                if ($st['status'] === 'Completed') { $completed++; }
+                elseif ($st['status'] === 'In Progress') { $inProgress++; }
+            }
+            $statusKey = 'todo';
+            if ($totalSteps > 0 && $completed === $totalSteps) {
+                $statusKey = 'done';
+            } elseif ($inProgress > 0 || ($completed > 0 && $completed < $totalSteps)) {
+                $statusKey = 'inprogress';
+            }
+
+            if ($status) {
+                // filter by desired column status if provided
+                $statusMap = ['To Do' => 'todo', 'In Progress' => 'inprogress', 'Done' => 'done'];
+                if (isset($statusMap[$status]) && $statusMap[$status] !== $statusKey) {
+                    continue;
+                }
+            }
+
+            // parse external links from special_notes if any
+            $links = [];
+            if (!empty($row['special_notes'])) {
+                if (preg_match_all('/https?:\\/\\/[^\s]*/', $row['special_notes'], $matches)) {
+                    foreach ($matches[0] as $u) { $links[] = ['href' => $u, 'label' => 'Open Link']; }
+                }
+            }
+
+            $card = [
+                'id_task' => (int)$row['id_task'],
+                'room' => [
+                    'number' => $row['room_num'],
+                    'type' => $row['room_type'],
+                ],
+                'priority' => $row['priority'],
+                'deadline' => $row['deadline'],
+                'steps' => $steps,
+                'links' => $links,
+            ];
+            $result[$statusKey][] = $card;
+            $result['summary']['total']++;
+            if ($statusKey === 'done') $result['summary']['done']++;
+        }
+
+        return $result;
+    }
+
+    protected function getStepsForRoomType($idTask, $idRoom)
+    {
+        // derive room type from room id
+        $room = new HotelRoomInformation((int)$idRoom);
+        $idProduct = (int)$room->id_product;
+        // find latest active sop for room_type (product)
+        $sopId = (int)Db::getInstance()->getValue('SELECT `id_sop` FROM `'._DB_PREFIX_.'housekeeping_sop` WHERE `active`=1 AND (`room_type`="" OR `room_type`='.(int)$idProduct.') ORDER BY `date_upd` DESC');
+        $steps = [];
+        if ($sopId) {
+            $rows = SOPStepModel::getStepsBySOP($sopId);
+            $statuses = TaskStepStatusModel::getStatusesByTask((int)$idTask);
+            foreach ($rows as $row) {
+                $idStep = (int)$row['id_sop_step'];
+                $steps[] = [
+                    'id_sop_step' => $idStep,
+                    'label' => $row['step_description'],
+                    'status' => isset($statuses[$idStep]) ? $statuses[$idStep] : 'Not Executed',
+                ];
+            }
+        }
+        return $steps;
+    }
+
+    protected function getTaskDetail($idTask)
+    {
+        $task = Db::getInstance()->getRow('SELECT t.*, r.room_num, pl.name as room_type FROM `'._DB_PREFIX_.'housekeeping_task_assignment` t INNER JOIN `'._DB_PREFIX_.'htl_room_information` r ON r.id=t.id_room INNER JOIN `'._DB_PREFIX_.'product_lang` pl ON (pl.id_product=r.id_product AND pl.id_lang='.(int)$this->context->language->id.') WHERE t.id_task='.(int)$idTask);
+        if (!$task) return ['success' => false];
+        $steps = $this->getStepsForRoomType((int)$task['id_task'], (int)$task['id_room']);
+        return [
+            'success' => true,
+            'task' => [
+                'id_task' => (int)$task['id_task'],
+                'room' => ['number' => $task['room_num'], 'type' => $task['room_type']],
+                'priority' => $task['priority'],
+                'deadline' => $task['deadline'],
+                'steps' => $steps,
+            ]
+        ];
     }
 
 }

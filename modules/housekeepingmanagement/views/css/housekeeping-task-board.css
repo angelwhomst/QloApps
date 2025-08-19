@@ -1,0 +1,55 @@
+/* Supervisor Tasks: Filters/Table/Inspection UI */
+.date-filter-wrapper { position: relative; display: inline-block; }
+.date-filter-dropdown { display: none; position: absolute; right: 0; margin-top: 5px; background: #fff; border: 1px solid #ccc; border-radius: 6px; padding: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 10; width: 220px; }
+.date-filter-dropdown input { width: 100%; padding: 6px 30px 6px 10px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 8px; font-size: 14px; }
+.date-filter-dropdown .icon { position: absolute; right: 12px; top: 9px; pointer-events: none; color: #666; }
+.date-input-container { position: relative; background: #eee; }
+table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; table-layout: fixed; }
+th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; word-wrap: break-word; }
+thead { background: #f9f9f9; }
+th { font-weight: 600; color: #555; }
+tbody tr:hover { background: #f4f8ff; }
+.btn { background: #eee; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+.btn.active { background: #007bff; color: white; }
+select { padding: 6px 10px; border-radius: 4px; border: 1px solid #ccc; }
+input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0; cursor: pointer; }
+input[type="date"]::-webkit-inner-spin-button { display: none; }
+#dateFilterBtn { background: #fff; border: 1px solid #ccc; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+#dateFilterBtn:hover { background: #f0f0f0; }
+.inspection-badge { background:#E0F0FF; color:#007bff; font-weight:bold; border-radius:12px; padding:4px 8px; display:inline-block; }
+.state-indicator { margin-left:8px; display:inline-block; padding:4px 8px; border-radius:12px; font-weight:bold; }
+.state-pass { background:#E7F8F0; color:#2e7d32; }
+.state-fail { background:#FFF5E0; color:#b26a00; }
+.toast-fixed { position:fixed; right:20px; bottom:20px; z-index:9999; min-width:260px; display:none; }
+
+/* Housekeeper Task Board */
+.hk-header { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.hk-progress { background:#fff; border-radius:10px; padding:12px 16px; box-shadow:0 2px 8px rgba(0,0,0,0.05); display:flex; gap:12px; align-items:center; }
+.hk-progress-bar { width:220px; height:8px; background:#eee; border-radius:6px; overflow:hidden; }
+.hk-progress-fill { height:100%; width:0%; background:#41C588; transition:width .3s ease; }
+.hk-filters { display:flex; flex-wrap:wrap; gap:8px; }
+.hk-filters input[type="search"], .hk-filters select, .hk-filters input[type="date"] { padding:8px 10px; border:1px solid #ccc; border-radius:6px; background:#fff; }
+.hk-columns { display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; }
+@media (max-width: 992px){ .hk-columns { grid-template-columns: 1fr; } }
+.hk-col { background:#fff; border-radius:10px; padding:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05); min-height:120px; }
+.hk-col h3 { margin:0 0 8px 0; font-size:16px; display:flex; align-items:center; justify-content:space-between; }
+.hk-empty { padding:16px; color:#666; background:#f9fafb; border:1px dashed #ddd; border-radius:8px; text-align:center; }
+.hk-card { border:1px solid #eee; border-radius:10px; padding:12px; margin-bottom:12px; background:#fff; }
+.hk-card .hk-room { font-weight:700; }
+.hk-meta { display:flex; gap:8px; align-items:center; color:#666; font-size:12px; margin-top:4px; }
+.hk-badge { padding:2px 8px; border-radius:999px; font-weight:700; font-size:12px; }
+.hk-badge.low { color:#2e7d32; background:#E7F8F0; }
+.hk-badge.medium { color:#b26a00; background:#FFF5E0; }
+.hk-badge.high { color:#F36960; background:#FEECEB; }
+.hk-steps { margin-top:8px; }
+.hk-step { display:flex; justify-content:space-between; align-items:center; padding:6px 8px; border:1px solid #f0f0f0; border-radius:8px; margin-top:6px; }
+.hk-step .label { flex:1; margin-right:10px; }
+.hk-status { font-weight:700; font-size:12px; padding:2px 8px; border-radius:999px; }
+.hk-status.not { color:#666; background:#eee; }
+.hk-status.ip { color:#0B5ED7; background:#E0F0FF; }
+.hk-status.ok { color:#2e7d32; background:#E7F8F0; }
+.hk-actions { display:flex; gap:8px; margin-top:10px; }
+.hk-btn { border:1px solid #ddd; background:#fff; padding:8px 10px; border-radius:6px; cursor:pointer; }
+.hk-btn.primary { background:#007bff; color:#fff; border-color:#007bff; }
+.hk-link { font-size:12px; color:#0B5ED7; text-decoration:underline; }
+
