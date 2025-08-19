@@ -66,6 +66,7 @@ class SupervisorTasksController extends ModuleAdminController
 
             // Fetch data for table for supervisor dashboard
             $sql = 'SELECT 
+                        t.id_task,
                         r.room_num AS room_number,
                         r.floor AS floor_number,  
                         e.firstname AS staff_firstname,
@@ -85,7 +86,8 @@ class SupervisorTasksController extends ModuleAdminController
             $tasks = Db::getInstance()->executeS($sql);
 
             $this->context->smarty->assign([
-                'tasks' => $tasks
+                'tasks' => $tasks,
+                'link' => $this->context->link
             ]);
 
             return $this->context->smarty->fetch(

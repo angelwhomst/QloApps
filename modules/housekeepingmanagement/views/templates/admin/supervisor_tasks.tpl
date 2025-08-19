@@ -1,14 +1,47 @@
 <!-- Housekeeping Management - Supervisor UI dashboard -->
 <div class="housekeeping-dashboard" style="padding: 20px; font-family: Arial, sans-serif; background: #f5f6f7;">
 
-    <link rel="stylesheet" href="{$smarty.const._MODULE_DIR_}housekeepingmanagement/views/css/housekeeping-task-board.css" />
+    <style>
+        .date-filter-wrapper { position: relative; display: inline-block; }
+        .date-filter-dropdown { display: none; position: absolute; right: 0; margin-top: 5px; background: #fff; border: 1px solid #ccc; border-radius: 6px; padding: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 10; width: 220px; }
+        .date-filter-dropdown input { width: 100%; padding: 6px 30px 6px 10px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 8px; font-size: 14px; }
+        .date-filter-dropdown .icon { position: absolute; right: 12px; top: 9px; pointer-events: none; color: #666; }
+        .date-input-container { position: relative; background: #eee; }
+        table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; table-layout: fixed; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; word-wrap: break-word; }
+        thead { background: #f9f9f9; }
+        th { font-weight: 600; color: #555; }
+        tbody tr:hover { background: #f4f8ff; }
+        .btn { background: #eee; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+        .btn.active { background: #007bff; color: white; }
+        select { padding: 6px 10px; border-radius: 4px; border: 1px solid #ccc; }
+        input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0; cursor: pointer; }
+        input[type="date"]::-webkit-inner-spin-button { display: none; }
+        #dateFilterBtn {
+            background: #fff;               
+            border: 1px solid #ccc; 
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        #dateFilterBtn:hover {
+            background: #f0f0f0;    
+        }
+        /* Inspection UI styles */
+        .inspection-badge { background:#E0F0FF; color:#007bff; font-weight:bold; border-radius:12px; padding:4px 8px; display:inline-block; }
+        .state-indicator { margin-left:8px; display:inline-block; padding:4px 8px; border-radius:12px; font-weight:bold; }
+        .state-pass { background:#E7F8F0; color:#2e7d32; }
+        .state-fail { background:#FFF5E0; color:#b26a00; }
+        .toast-fixed { position:fixed; right:20px; bottom:20px; z-index:9999; min-width:260px; display:none; }
+    </style>
 
     <!-- Summary Cards -->
     <div class="summary-cards" style="display: flex; gap: 20px; margin-bottom: 20px;">
         <div class="card" style="flex: 1; background: #fff; padding: 20px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <div>
                 <div style="font-size: 14px; color: #666;">Cleaned Rooms</div>
-                <div style="font-size: 28px; font-weight: bold;">100</div>
+                <div style="font-size: 28px; font-weight: bold;" id="count-cleaned">0</div>
             </div>
             <i class="fas fa-check-circle" style="font-size: 32px; color: green; margin-left: 15px;"></i>
         </div>
@@ -16,7 +49,7 @@
         <div class="card" style="flex: 1; background: #fff; padding: 20px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <div>
                 <div style="font-size: 14px; color: #666;">Not Cleaned</div>
-                <div style="font-size: 28px; font-weight: bold;">10</div>
+                <div style="font-size: 28px; font-weight: bold;" id="count-not-cleaned">0</div>
             </div>
             <i class="fas fa-ban" style="font-size: 32px; color: orange; margin-left: 15px;"></i>
         </div>
@@ -24,7 +57,7 @@
         <div class="card" style="flex: 1; background: #fff; padding: 20px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <div>
                 <div style="font-size: 14px; color: #666;">To Be Inspected</div>
-                <div style="font-size: 28px; font-weight: bold;">100</div>
+                <div style="font-size: 28px; font-weight: bold;" id="count-to-inspect">0</div>
             </div>
             <i class="fas fa-search" style="font-size: 32px; color: #007bff; margin-left: 15px;"></i>
         </div>
@@ -32,78 +65,11 @@
         <div class="card" style="flex: 1; background: #fff; padding: 20px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <div>
                 <div style="font-size: 14px; color: #666;">Failed Inspections</div>
-                <div style="font-size: 28px; font-weight: bold;">10</div>
+                <div style="font-size: 28px; font-weight: bold;" id="count-failed">0</div>
             </div>
             <i class="fas fa-times-circle" style="font-size: 32px; color: red; margin-left: 15px;"></i>
         </div>
-    </div>
 
-    <!-- Housekeeper Task Board -->
-    <div class="hk-task-board" style="padding: 10px 0;">
-
-        <div class="hk-header">
-            <div class="hk-progress" aria-live="polite">
-                <div>
-                    <div style="font-size:12px; color:#666;">Task Done</div>
-                    <div id="hk-progress-text" style="font-weight:700; font-size:18px;">0/0</div>
-                </div>
-                <div class="hk-progress-bar" aria-hidden="true"><div id="hk-progress-fill" class="hk-progress-fill"></div></div>
-            </div>
-            <div class="hk-filters" role="region" aria-label="Filters">
-                <input id="hk-search" type="search" placeholder="Search room number or name" aria-label="Search tasks" />
-                <select id="hk-status" aria-label="Status filter">
-                    <option value="">All Status</option>
-                    <option value="To Do">To Do</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Done">Done</option>
-                </select>
-                <select id="hk-priority" aria-label="Priority filter">
-                    <option value="">Priority</option>
-                    <option value="High">High</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Low">Low</option>
-                </select>
-                <input id="hk-date" type="date" aria-label="Deadline date filter" />
-                <button id="hk-clear" class="hk-btn" aria-label="Clear filters">Clear</button>
-            </div>
-        </div>
-
-        <div class="hk-columns" aria-live="polite">
-            <div class="hk-col" id="col-todo" aria-labelledby="col-todo-title">
-                <h3 id="col-todo-title">To Do <span id="cnt-todo" class="hk-badge not">0</span></h3>
-                <div class="hk-empty" id="empty-todo">No tasks to do.</div>
-                <div id="list-todo"></div>
-            </div>
-            <div class="hk-col" id="col-inprogress" aria-labelledby="col-inprogress-title">
-                <h3 id="col-inprogress-title">In Progress <span id="cnt-inprogress" class="hk-badge ip">0</span></h3>
-                <div class="hk-empty" id="empty-inprogress">No tasks in progress.</div>
-                <div id="list-inprogress"></div>
-            </div>
-            <div class="hk-col" id="col-done" aria-labelledby="col-done-title">
-                <h3 id="col-done-title">Done <span id="cnt-done" class="hk-badge ok">0</span></h3>
-                <div class="hk-empty" id="empty-done">No tasks completed yet.</div>
-                <div id="list-done"></div>
-            </div>
-        </div>
-
-        <div id="hk-modal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
-            <div class="modal-dialog modal-lg" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                        <h4 class="modal-title">Task Details</h4>
-                    </div>
-                    <div class="modal-body" id="hk-modal-body"></div>
-                    <div class="modal-footer" id="hk-modal-footer" style="display:flex; gap:10px; flex-wrap:wrap; justify-content:space-between; align-items:center;">
-                        <div id="hk-modal-progress" style="font-weight:700;">Checklist Done: 00/00</div>
-                        <div class="hk-actions-bar" style="display:flex; gap:8px;">
-                            <button type="button" class="btn btn-success" id="hk-done-task" aria-label="Submit checklist">Done Task</button>
-                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
 
@@ -140,27 +106,28 @@
         </div>
     </div>
 
-    <!-- Inspections (Frontend-only with mock data) -->
-    <div class="panel" style="margin-top:10px; margin-bottom:20px;">
+    <!-- Inspections (Frontend-only mock data) -->
+    <div class="panel" style="margin-top:10px; margin-bottom:20px;" data-inspection-ui="true">
         <div class="panel-heading">
             <i class="icon-search"></i> Inspections
         </div>
-        <div id="inspections-empty" class="alert alert-info" style="display:none;" role="status" aria-live="polite">
-            No rooms are currently pending inspection. Once housekeeping marks rooms as cleaned, they will appear here for inspection.
-        </div>
         <div class="table-responsive-row clearfix">
-            <table class="table" id="inspections-table" aria-label="Rooms to be inspected">
+            <table class="table" id="inspections-table" aria-label="Rooms to be inspected" data-inspection-placeholder="list">
                 <thead>
                     <tr>
-                        <th>Room#</th>
+                        <th>Room Number</th>
                         <th>Assigned Staff</th>
                         <th>Room Type</th>
                         <th>Completed Time</th>
+                        <th>Status</th>
                         <th class="text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="inspections-body"></tbody>
             </table>
+        </div>
+        <div id="inspections-empty" class="alert alert-info" style="display:none;" role="status" aria-live="polite">
+            No rooms are currently pending inspection. Once housekeeping marks rooms as cleaned, they will appear here for inspection.
         </div>
     </div>
 
@@ -243,13 +210,14 @@
     <table>
         <thead>
             <tr>
-                <th style="width: 10%;">Room#</th>
+                <th style="width: 10%;">Room Number</th>
                 <th style="width: 20%;">Assigned Staff</th>
                 <th style="width: 15%;">Room Floor</th>
                 <th style="width: 15%;">Due Date</th>
                 <th style="width: 15%;">Start Time</th>
                 <th style="width: 10%;">Priority</th>
                 <th style="width: 15%;">Task Status</th>
+                <th style="width: 15%;">Actions</th>
             </tr>
         </thead>
         <tbody id="roomTableBody">
@@ -315,6 +283,11 @@
                         {$task.room_status}
                     </span>
                 </td>
+                <td>
+                    <a class="btn btn-primary btn-sm" target="_blank" rel="noopener" href="index.php?fc=module&module=housekeepingmanagement&controller=housekeeping&id_task={$task.id_task|intval}" aria-label="Open housekeeper view for room {$task.room_number}">
+                        <i class="icon-external-link"></i> Open Task
+                    </a>
+                </td>
             </tr>
         {/foreach}
         </tbody>
@@ -336,11 +309,13 @@
     {literal}
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // =====================
-        // Inspection UI (mock)
-        // =====================
+        // Placeholder endpoints for future backend integration
+        var API_ROOM_LIST_URL = null; // e.g., '/admin123/index.php?controller=SupervisorTasks&ajax=1&action=ListRoomsToInspect'
+        var API_APPROVE_URL = null;   // e.g., '/admin123/index.php?controller=SupervisorTasks&ajax=1&action=SubmitInspection'
+        var API_REJECT_URL = null;    // same as above, decision=reject
+        // Mock data for inspections (frontend-only)
         var inspectionRooms = [
-            { id: 1, roomNumber: '101', staff: 'Jane Cooper', roomType: 'Deluxe', completedAt: '2025-08-19 15:22', checklist: [
+            { id: 1, id_task: 1, roomNumber: '101', staff: 'Staff Name', roomType: 'Deluxe', completedAt: '2025-08-19 15:22', status: 'To Be Inspected', checklist: [
                 { id: 'beds', label: 'Bed linen fresh and tidy', passed: false },
                 { id: 'bath', label: 'Bathroom sanitized', passed: false },
                 { id: 'dust', label: 'No dust on surfaces', passed: false },
@@ -352,7 +327,7 @@
                 { id: 'ac', label: 'AC/heater functioning', passed: false },
                 { id: 'win', label: 'Windows clean', passed: false }
             ]},
-            { id: 2, roomNumber: '205', staff: 'Ralph Edwards', roomType: 'Suite', completedAt: '2025-08-19 14:05', checklist: [
+            { id: 2, id_task: 2, roomNumber: '205', staff: 'Staff Name', roomType: 'Suite', completedAt: '2025-08-19 14:05', status: 'To Be Inspected', checklist: [
                 { id: 'beds', label: 'Bed linen fresh and tidy', passed: false },
                 { id: 'bath', label: 'Bathroom sanitized', passed: true },
                 { id: 'dust', label: 'No dust on surfaces', passed: true },
@@ -364,7 +339,7 @@
                 { id: 'ac', label: 'AC/heater functioning', passed: true },
                 { id: 'win', label: 'Windows clean', passed: false }
             ]},
-            { id: 3, roomNumber: '310', staff: 'Devon Lane', roomType: 'Standard', completedAt: '2025-08-19 16:10', checklist: [
+            { id: 3, id_task: 3, roomNumber: '310', staff: 'Staff Name', roomType: 'Standard', completedAt: '2025-08-19 16:10', status: 'To Be Inspected', checklist: [
                 { id: 'beds', label: 'Bed linen fresh and tidy', passed: true },
                 { id: 'bath', label: 'Bathroom sanitized', passed: true },
                 { id: 'dust', label: 'No dust on surfaces', passed: true },
@@ -377,6 +352,9 @@
                 { id: 'win', label: 'Windows clean', passed: true }
             ]}
         ];
+
+        // Debug: Log the inspection rooms data
+        console.log('Inspection rooms data:', inspectionRooms);
 
         var inspTableBody = document.getElementById('inspections-body');
         var inspTable = document.getElementById('inspections-table');
@@ -395,6 +373,10 @@
         var inspAddRemarks = document.getElementById('insp-add-remarks');
         var inspLoading = document.getElementById('insp-loading');
         var remarksText = document.getElementById('remarksText');
+        var countCleaned = document.getElementById('count-cleaned');
+        var countNotCleaned = document.getElementById('count-not-cleaned');
+        var countToInspect = document.getElementById('count-to-inspect');
+        var countFailed = document.getElementById('count-failed');
 
         var currentRoomId = null;
 
@@ -411,6 +393,18 @@
             return s;
         }
 
+        function updateCounts(){
+            // For demo, counts based on the mock list
+            var toInspect = inspectionRooms.length;
+            var cleaned = 0; // not tracked in mock list
+            var notCleaned = 0; // not tracked in mock list
+            var failed = 0; // not tracked in mock list
+            countToInspect.textContent = toInspect;
+            countCleaned.textContent = cleaned;
+            countNotCleaned.textContent = notCleaned;
+            countFailed.textContent = failed;
+        }
+
         function renderList() {
             inspTableBody.innerHTML = '';
             if (!inspectionRooms.length) {
@@ -420,17 +414,30 @@
             }
             inspTable.style.display = '';
             inspEmpty.style.display = 'none';
+            
+            console.log('Rendering inspection list with', inspectionRooms.length, 'rooms');
+            
             inspectionRooms.forEach(function(r){
                 var tr = document.createElement('tr');
+                tr.setAttribute('data-id', r.id);
+                tr.setAttribute('tabindex', '0');
+                
                 tr.innerHTML = '<td>'+r.roomNumber+'</td>'+
                     '<td>'+r.staff+'</td>'+
                     '<td>'+r.roomType+'</td>'+
                     '<td>'+r.completedAt+'</td>'+
+                    '<td><span class="inspection-badge">'+r.status+'</span></td>'+
                     '<td class="text-right">'+
                         '<button class="btn btn-default btn-sm inspect-btn" data-id="'+r.id+'" aria-label="Inspect room '+r.roomNumber+'">'+
                             '<i class="icon-eye-open"></i> Inspect'+
                         '</button>'+
+                        '<a class="btn btn-primary btn-sm" target="_blank" rel="noopener" href="index.php?fc=module&module=housekeepingmanagement&controller=housekeeping&id_task='+r.id_task+'" aria-label="Open housekeeper view for room '+r.roomNumber+'">'+
+                            '<i class="icon-external-link"></i> Open Task'+
+                        '</a>'+
                     '</td>';
+                
+                console.log('Creating row for room', r.roomNumber, 'with HTML:', rowHtml);
+                tr.innerHTML = rowHtml;
                 inspTableBody.appendChild(tr);
             });
         }
@@ -476,30 +483,46 @@
             inspProgressText.textContent = pad(passed, digits) + '/' + pad(total, digits) + ' tasks done';
         }
 
-        function attachRowHandlers() {
-            inspTableBody.addEventListener('click', function(e){
-                var btn = e.target.closest('.inspect-btn');
-                if (!btn) return;
-                openDetail(parseInt(btn.getAttribute('data-id')));
-            });
-        }
+        // Open by clicking inspect button
+        inspTableBody.addEventListener('click', function(e){
+            var btn = e.target.closest('.inspect-btn');
+            if (!btn) return;
+            openDetail(parseInt(btn.getAttribute('data-id')));
+        });
 
-        function attachChecklistHandlers() {
-            inspChecklist.addEventListener('change', function(e){
-                if (!e.target.classList.contains('insp-toggle')) return;
-                var id = e.target.getAttribute('data-id');
-                var r = inspectionRooms.find(function(x){ return x.id === currentRoomId; });
-                if (!r) return;
-                var item = r.checklist.find(function(i){ return i.id === id; });
-                if (!item) return;
-                item.passed = e.target.checked;
-                e.target.setAttribute('aria-checked', item.passed ? 'true' : 'false');
-                var label = e.target.parentNode.querySelector('.state-indicator');
-                label.textContent = item.passed ? 'Passed' : 'Failed';
-                label.className = 'state-indicator ' + (item.passed ? 'state-pass' : 'state-fail');
-                updateProgress();
-            });
-        }
+        // Also open by clicking a row or pressing Enter/Space (accessibility)
+        inspTableBody.addEventListener('click', function(e){
+            var row = e.target.closest('tr');
+            if (!row) return;
+            if (e.target.closest('.inspect-btn')) return; // already handled
+            var id = parseInt(row.getAttribute('data-id'));
+            if (id) openDetail(id);
+        });
+        inspTableBody.addEventListener('keydown', function(e){
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            var row = e.target.closest('tr');
+            if (!row) return;
+            var id = parseInt(row.getAttribute('data-id'));
+            if (id) {
+                e.preventDefault();
+                openDetail(id);
+            }
+        });
+
+        inspChecklist.addEventListener('change', function(e){
+            if (!e.target.classList.contains('insp-toggle')) return;
+            var r = inspectionRooms.find(function(x){ return x.id === currentRoomId; });
+            if (!r) return;
+            var id = e.target.getAttribute('data-id');
+            var item = r.checklist.find(function(i){ return i.id === id; });
+            if (!item) return;
+            item.passed = e.target.checked;
+            e.target.setAttribute('aria-checked', item.passed ? 'true' : 'false');
+            var label = e.target.parentNode.querySelector('.state-indicator');
+            label.textContent = item.passed ? 'Passed' : 'Failed';
+            label.className = 'state-indicator ' + (item.passed ? 'state-pass' : 'state-fail');
+            updateProgress();
+        });
 
         function simulateSubmit(decision) {
             inspLoading.style.display = 'inline-block';
@@ -512,6 +535,7 @@
             setTimeout(function(){
                 inspectionRooms = inspectionRooms.filter(function(x){ return x.id !== currentRoomId; });
                 renderList();
+                updateCounts();
                 inspLoading.style.display = 'none';
                 inspApprove.disabled = false;
                 inspReject.disabled = false;
@@ -519,18 +543,34 @@
                 inspReject.innerHTML = startTextR;
                 if (window.jQuery && jQuery.fn.modal) { jQuery(modal).modal('hide'); }
                 showToast(decision === 'approve' ? 'Inspection approved' : 'Inspection rejected', 'success');
-            }, 1200);
+            }, 900);
         }
 
-        // Bind footer actions
-        inspApprove.addEventListener('click', function(){ simulateSubmit('approve'); });
-        inspReject.addEventListener('click', function(){ simulateSubmit('reject'); });
+        function confirmSubmit(decision) {
+            var title = decision === 'approve' ? 'Approve inspection?' : 'Reject inspection?';
+            var text = decision === 'approve' ? 'This will mark the room as Cleaned.' : 'This will mark the room as Failed Inspection.';
+            var confirmText = decision === 'approve' ? 'Approve' : 'Reject';
+            if (window.Swal && Swal.fire) {
+                Swal.fire({
+                    title: title,
+                    text: text,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: confirmText,
+                    cancelButtonText: 'Cancel'
+                }).then(function(result){
+                    if (result.isConfirmed) simulateSubmit(decision);
+                });
+            } else {
+                if (window.confirm(title + '\n' + text)) simulateSubmit(decision);
+            }
+        }
+        inspApprove.addEventListener('click', function(){ confirmSubmit('approve'); });
+        inspReject.addEventListener('click', function(){ confirmSubmit('reject'); });
         inspAddRemarks.addEventListener('click', function(){ if (window.jQuery && jQuery.fn.modal) { jQuery('#remarksModal').modal('show'); } });
 
-        // Initialize
         renderList();
-        attachRowHandlers();
-        attachChecklistHandlers();
+        updateCounts();
 
         const from = document.querySelector('.from-date');
         const to = document.querySelector('.to-date');
@@ -638,209 +678,6 @@
         // Initial render
         renderTable();
     });
-    </script>
-    {/literal}
-
-    {literal}
-    <script>
-    (function(){
-        function currentUrlBase(){ var u = window.location.href.split('#')[0]; return u.indexOf('?')>-1 ? u+'&' : u+'?'; }
-        var state = { q:'', status:'', priority:'', date:'' };
-        var endpoints = {
-            fetch: currentUrlBase() + 'ajax=1&action=fetchTasks',
-            toggle: currentUrlBase() + 'ajax=1&action=toggleStep',
-            detail: currentUrlBase() + 'ajax=1&action=getTaskDetail',
-            submit: currentUrlBase() + 'ajax=1&action=submitChecklist'
-        };
-
-        function el(id){ return document.getElementById(id); }
-        function priorityClass(p){ var v=(p||'').toLowerCase(); if(v==='high')return 'high'; if(v==='medium')return 'medium'; return 'low'; }
-        function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]);}); }
-        function formatDate(d){ try{ var dt=new Date((d||'').replace(' ','T')); return dt.toLocaleString(); }catch(e){ return d||''; } }
-
-        function renderBoard(data){
-            ['todo','inprogress','done'].forEach(function(k){
-                var list = el('list-'+k), empty=el('empty-'+k), cnt=el('cnt-'+k);
-                list.innerHTML='';
-                cnt.textContent = (data[k]||[]).length;
-                if(!data[k] || !data[k].length){ empty.style.display='block'; return; } else { empty.style.display='none'; }
-                (data[k]||[]).forEach(function(card){ list.appendChild(renderCard(card)); });
-            });
-            var done = data.summary?data.summary.done:0, total = data.summary?data.summary.total:0;
-            el('hk-progress-text').textContent = done+'/'+total;
-            el('hk-progress-fill').style.width = (total?Math.round(done/total*100):0)+'%';
-        }
-
-        function renderCard(card){
-            var div=document.createElement('div'); div.className='hk-card';
-            div.innerHTML =
-                '<div class="hk-room">Room '+escapeHtml(card.room.number)+' <span style="font-weight:400;color:#666;">— '+escapeHtml(card.room.type)+'</span></div>'+
-                '<div class="hk-meta"><span class="hk-badge '+priorityClass(card.priority)+'">'+escapeHtml(card.priority)+'</span>'+
-                '<span><i class="icon-time"></i> '+formatDate(card.deadline)+'</span></div>'+
-                '<div class="hk-steps"></div>'+
-                '<div class="hk-actions">'+
-                    '<button class="hk-btn primary" data-view="'+card.id_task+'">View Task</button>'+
-                '</div>';
-            var stepsWrap = div.querySelector('.hk-steps');
-            (card.steps||[]).forEach(function(st){ stepsWrap.appendChild(renderStep(card.id_task, st)); });
-            if (card.links && card.links.length){
-                var linksBar = document.createElement('div'); linksBar.className='hk-meta';
-                card.links.forEach(function(l){ var a=document.createElement('a'); a.href=l.href; a.target='_blank'; a.rel='noopener'; a.className='hk-link'; a.textContent=l.label; linksBar.appendChild(a); });
-                div.appendChild(linksBar);
-            }
-            div.addEventListener('click', function(e){ var b=e.target.closest('[data-view]'); if(!b) return; openDetail(b.getAttribute('data-view')); });
-            return div;
-        }
-
-        function renderStep(idTask, st){
-            var row=document.createElement('div'); row.className='hk-step';
-            var cls = st.status==='Completed'?'ok':(st.status==='In Progress'?'ip':'not');
-            row.innerHTML = '<div class="label">'+escapeHtml(st.label)+'</div>'+
-                '<div style="display:flex; align-items:center; gap:8px;">'+
-                '<select aria-label="'+escapeHtml(st.label)+' status" data-task="'+idTask+'" data-step="'+st.id_sop_step+'">'+
-                    '<option '+(st.status==='Not Executed'?'selected':'')+'>Not Executed</option>'+
-                    '<option '+(st.status==='In Progress'?'selected':'')+'>In Progress</option>'+
-                    '<option '+(st.status==='Completed'?'selected':'')+'>Completed</option>'+
-                '</select>'+
-                '<span class="hk-status '+cls+'">'+st.status+'</span></div>';
-            row.querySelector('select').addEventListener('change', function(ev){
-                var status = ev.target.value; var idStep=ev.target.getAttribute('data-step'); var idTask = ev.target.getAttribute('data-task');
-                var badge=row.querySelector('.hk-status'); var cls = status==='Completed'?'ok':(status==='In Progress'?'ip':'not'); badge.textContent=status; badge.className='hk-status '+cls;
-                var xhr = new XMLHttpRequest(); xhr.open('POST', endpoints.toggle, true); xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded');
-                xhr.onload=function(){ fetchData(); }; xhr.send('id_task='+encodeURIComponent(idTask)+'&id_sop_step='+encodeURIComponent(idStep)+'&status='+encodeURIComponent(status));
-            });
-            return row;
-        }
-
-        function openDetail(idTask){ var xhr=new XMLHttpRequest(); xhr.open('GET', endpoints.detail+'&id_task='+encodeURIComponent(idTask), true); xhr.onload=function(){ try{ var r=JSON.parse(xhr.responseText||'{}'); if(r.success) renderDetail(r.task);}catch(e){} }; xhr.send(); }
-        function renderDetail(task){
-            var progressEl = document.getElementById('hk-modal-progress');
-            var done = (task.progress && task.progress.done) ? task.progress.done : 0;
-            var total = (task.progress && task.progress.total) ? task.progress.total : (task.steps||[]).length;
-            progressEl.textContent = 'Checklist Done: '+String(done).padStart(String(total).length,'0')+'/'+String(total).padStart(String(total).length,'0');
-
-            var header = '<div class="hk-detail-grid">'+
-                '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">'+
-                '<h3 style="margin:0;">Room '+escapeHtml(task.room.number)+' <small>— '+escapeHtml(task.room.type)+'</small></h3>'+
-                '<span class="hk-badge '+priorityClass(task.priority)+'">'+escapeHtml(task.priority)+'</span></div>'+
-                '<div style="display:flex; flex-wrap:wrap; gap:8px; color:#666;">'+
-                '<span title="Start"><i class="icon-time"></i> Start: '+(task.start?formatDate(task.start):'—')+'</span>'+
-                '<span title="Due"><i class="icon-time"></i> Due: '+formatDate(task.deadline)+'</span>'+
-                '<span class="hk-status ip" aria-label="In Progress badge">In Progress</span>'+
-                '</div>'+
-                (task.notes?('<div style="margin-top:8px; color:#444;"><strong>Note:</strong> '+escapeHtml(task.notes)+'</div>'):'')+
-                '</div>';
-
-            var list = (task.steps||[]).map(function(st){
-                var id = st.id_sop_step;
-                var passed = (st.status==='Completed');
-                return '<div class="hk-item" data-id="'+id+'">'+
-                    '<div class="label">'+escapeHtml(st.label)+'</div>'+
-                    '<div class="hk-toggle" role="group" aria-label="'+escapeHtml(st.label)+' result">'+
-                        '<input type="radio" name="step-'+id+'" id="step-'+id+'-pass" '+(passed?'checked':'')+' />'+
-                        '<label class="opt-pass" for="step-'+id+'-pass" data-val="1">Pass</label>'+
-                        '<input type="radio" name="step-'+id+'" id="step-'+id+'-fail" '+(!passed?'checked':'')+' />'+
-                        '<label class="opt-fail" for="step-'+id+'-fail" data-val="0">Fail</label>'+
-                    '</div>'+
-                '</div>';
-            }).join('');
-
-            var body=document.getElementById('hk-modal-body');
-            body.innerHTML = header + '<div style="margin-top:10px;">'+ (list || '<div class="hk-empty">No checklist is configured for this room type.</div>') +'</div>';
-
-            // Bind toggle behavior with keyboard accessibility
-            body.querySelectorAll('.hk-toggle').forEach(function(group){
-                group.addEventListener('click', function(e){
-                    if (e.target && e.target.matches('label.opt-pass, label.opt-fail')) {
-                        var label = e.target; var parent = label.closest('.hk-toggle');
-                        var forId = label.getAttribute('for');
-                        var input = document.getElementById(forId); if (input) { input.checked = true; }
-                        updateModalProgress();
-                    }
-                });
-                group.addEventListener('keydown', function(e){
-                    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-                        e.preventDefault();
-                        var labels = Array.prototype.slice.call(group.querySelectorAll('label'));
-                        var checked = group.querySelector('input:checked');
-                        var idx = checked ? labels.findIndex(function(l){ return l.getAttribute('for') === checked.id; }) : 0;
-                        var next = e.key === 'ArrowRight' ? (idx+1)%labels.length : (idx-1+labels.length)%labels.length;
-                        var forId = labels[next].getAttribute('for'); var input = document.getElementById(forId); if (input) { input.checked = true; labels[next].focus(); }
-                        updateModalProgress();
-                    } else if (e.key === ' ' || e.key === 'Enter') {
-                        var focused = document.activeElement;
-                        if (focused && focused.tagName === 'LABEL' && group.contains(focused)) {
-                            e.preventDefault();
-                            var forId = focused.getAttribute('for');
-                            var input = document.getElementById(forId); if (input) { input.checked = true; }
-                            updateModalProgress();
-                        }
-                    }
-                });
-                // Make labels focusable for keyboard nav
-                group.querySelectorAll('label').forEach(function(l){ l.tabIndex = 0; });
-            });
-
-            // Attach submit handler
-            var submitBtn = document.getElementById('hk-done-task');
-            submitBtn.onclick = function(){ submitChecklist(task.id_task); };
-
-            if(window.jQuery && jQuery.fn.modal){ jQuery('#hk-modal').modal('show'); }
-        }
-
-        function updateModalProgress(){
-            var body=document.getElementById('hk-modal-body');
-            var items = body.querySelectorAll('.hk-item');
-            var total = items.length; var done = 0;
-            items.forEach(function(it){ var pass = it.querySelector('label.opt-pass'); var input = document.getElementById(pass.getAttribute('for')); if (input && input.checked) done++; });
-            var progressEl = document.getElementById('hk-modal-progress');
-            var digits = String(total).length; var d = String(done).padStart(digits,'0'); var t = String(total).padStart(digits,'0');
-            progressEl.textContent = 'Checklist Done: '+d+'/'+t;
-        }
-
-        function submitChecklist(idTask){
-            var body=document.getElementById('hk-modal-body');
-            var items = [];
-            body.querySelectorAll('.hk-item').forEach(function(it){
-                var id = it.getAttribute('data-id');
-                var passLabel = it.querySelector('label.opt-pass');
-                var input = document.getElementById(passLabel.getAttribute('for'));
-                items.push({ id_sop_step: parseInt(id,10), passed: !!(input && input.checked) });
-            });
-            // If no items, just show toast and close
-            if (!items.length){ showToast('No checklist to submit for this task.', 'info'); if(window.jQuery && jQuery.fn.modal){ jQuery('#hk-modal').modal('hide'); } return; }
-            var btn = document.getElementById('hk-done-task'); var old = btn.innerHTML; btn.disabled=true; btn.innerHTML = '<i class="icon-refresh icon-spin"></i> Submitting...';
-            var xhr = new XMLHttpRequest(); xhr.open('POST', endpoints.submit, true); xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded; charset=UTF-8');
-            xhr.onload = function(){ btn.disabled=false; btn.innerHTML=old; try{ var r=JSON.parse(xhr.responseText||'{}'); if(r && r.success){ showToast('Checklist submitted', 'success'); if(window.jQuery && jQuery.fn.modal){ jQuery('#hk-modal').modal('hide'); } fetchData(); } else { showToast('Submit failed','error'); } }catch(e){ showToast('Unexpected response','error'); } };
-            xhr.send('id_task='+encodeURIComponent(idTask)+'&items='+encodeURIComponent(JSON.stringify(items)));
-        }
-
-        // simple toast in this board
-        function showToast(message, type){
-            try {
-                var t = document.getElementById('inspection-toast');
-                if (!t) return alert(message);
-                t.className = 'toast-fixed alert ' + (type==='success'?'alert-success':(type==='error'?'alert-danger':'alert-info'));
-                t.textContent = message; t.style.display = 'block'; setTimeout(function(){ t.style.display='none'; }, 2000);
-            } catch (e) { alert(message); }
-        }
-
-        function fetchData(){
-            var params='q='+encodeURIComponent(state.q||'')+'&status='+encodeURIComponent(state.status||'')+'&priority='+encodeURIComponent(state.priority||'')+'&date='+encodeURIComponent(state.date||'');
-            var xhr=new XMLHttpRequest(); xhr.open('POST', endpoints.fetch, true); xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded');
-            xhr.onload=function(){ try{ var data=JSON.parse(xhr.responseText||'{}'); renderBoard(data);}catch(e){} }; xhr.send(params);
-        }
-
-        // bind
-        document.getElementById('hk-search').addEventListener('input', function(e){ state.q=e.target.value; fetchData(); });
-        document.getElementById('hk-status').addEventListener('change', function(e){ state.status=e.target.value; fetchData(); });
-        document.getElementById('hk-priority').addEventListener('change', function(e){ state.priority=e.target.value; fetchData(); });
-        document.getElementById('hk-date').addEventListener('change', function(e){ state.date=e.target.value; fetchData(); });
-        document.getElementById('hk-clear').addEventListener('click', function(){ state={q:'',status:'',priority:'',date:''}; document.getElementById('hk-search').value=''; document.getElementById('hk-status').value=''; document.getElementById('hk-priority').value=''; document.getElementById('hk-date').value=''; fetchData(); });
-
-        // init
-        fetchData();
-    })();
     </script>
     {/literal}
 </div>
