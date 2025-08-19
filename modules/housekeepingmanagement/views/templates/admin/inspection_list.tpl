@@ -52,6 +52,7 @@
                         <th>{l s='Assigned Staff' mod='housekeepingmanagement'}</th>
                         <th>{l s='Room Type' mod='housekeepingmanagement'}</th>
                         <th>{l s='Completed Time' mod='housekeepingmanagement'}</th>
+                        <th>{l s='Status' mod='housekeepingmanagement'}</th>
                         <th class="text-right">{l s='Actions' mod='housekeepingmanagement'}</th>
                     </tr>
                 </thead>
@@ -62,6 +63,9 @@
                             <td>{if $room.staff_name}{$room.staff_name|escape:'html':'UTF-8'}{else}{l s='Unassigned' mod='housekeepingmanagement'}{/if}</td>
                             <td>{$room.room_type|escape:'html':'UTF-8'}</td>
                             <td>{$room.completed_time|date_format:"%Y-%m-%d %H:%M"}</td>
+                            <td>
+                                <span class="badge" style="background:#E0F0FF; color:#007bff;">{$room.status|escape:'html':'UTF-8'}</span>
+                            </td>
                             <td class="text-right">
                                 <a class="btn btn-default" href="{$currentIndex|escape:'html':'UTF-8'}&token={$token|escape:'html':'UTF-8'}&inspect_room=1&id_room={$room.id_room|intval}">
                                     <i class="icon-eye-open"></i> {l s='Inspect' mod='housekeepingmanagement'}
