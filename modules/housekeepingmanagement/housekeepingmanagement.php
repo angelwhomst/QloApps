@@ -37,7 +37,9 @@ class HousekeepingManagement extends Module
             || !$this->registerHook('addWebserviceResources') 
             || !$this->installDb()
             || !$this->installTab()
-            || !$this->registerSpecificManagementClass()) {
+            || !$this->registerSpecificManagementClass()
+            || !$this->insertDefaultRoomStatuses()
+        ) {
             return false;
         }
         return true;
@@ -134,9 +136,10 @@ class HousekeepingManagement extends Module
     public function uninstallDb()
     {
         $sql = array();
-        $sql[] = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.'housekeeping_sop`';
-        $sql[] = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.'housekeeping_sop_step`';
         $sql[] = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.'housekeeping_task_assignment`';
+        $sql[] = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.'housekeeping_room_status`';
+        $sql[] = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.'housekeeping_sop_step`';
+        $sql[] = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.'housekeeping_sop`';
 
         $return = true;
         foreach ($sql as $query) {
@@ -326,6 +329,40 @@ class HousekeepingManagement extends Module
             $tab->delete();
         }
         
+        return true;
+    }
+
+    /**
+     * insert default room statuses for id_room_status 1-5 (one row each, id_room = id_room_status)
+     */
+    public function insertDefaultRoomStatuses()
+    {
+        $statuses = [
+            1 => 'Failed Inspection',
+            2 => 'Cleaned',
+            3 => 'Unassigned',
+            4 => 'Not Cleaned',
+            5 => 'To Be Inspected'
+        ];
+
+        $now = date('Y-m-d H:i:s');
+        $db = Db::getInstance();
+
+        foreach ($statuses as $id_room => $status) {
+            // Check if already exists to avoid duplicates
+            $exists = $db->getValue('
+                SELECT COUNT(*) FROM `'._DB_PREFIX_.'housekeeping_room_status`
+                WHERE `id_room` = '.(int)$id_room.' AND `status` = "'.pSQL($status).'"
+            ');
+            if (!$exists) {
+                $db->insert('housekeeping_room_status', [
+                    'id_room' => (int)$id_room,
+                    'status' => pSQL($status),
+                    'id_employee' => null,
+                    'date_upd' => $now,
+                ]);
+            }
+        }
         return true;
     }
     
