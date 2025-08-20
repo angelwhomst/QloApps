@@ -5,6 +5,7 @@ if (!defined('_PS_VERSION_')) {
 
 require_once(_PS_MODULE_DIR_ . 'housekeepingmanagement/classes/TaskAssignmentModel.php');
 require_once(_PS_MODULE_DIR_.'hotelreservationsystem/classes/HotelRoomInformation.php');
+require_once(_PS_MODULE_DIR_ . 'housekeepingmanagement/classes/TaskStepModel.php');
 
 /**
  * SupervisorTasksController
@@ -26,13 +27,15 @@ class SupervisorTasksController extends ModuleAdminController
         $this->bootstrap = true; 
         parent::__construct(); 
 
-        $this->page_header_toolbar_btn['new_task'] = [
-            'href' => $this->context->link->getAdminLink('SupervisorTasks') . '&addnewtask=1', 
-            'desc' => $this->l('Assign Staff'), 
-            'icon' => 'process-icon-new', 
-        ];
+        // Only show assign button for non-housekeepers
+        if ($this->context->employee->id_profile != 3) {
+            $this->page_header_toolbar_btn['new_task'] = [
+                'href' => $this->context->link->getAdminLink('SupervisorTasks') . '&addnewtask=1', 
+                'desc' => $this->l('Assign Staff'), 
+                'icon' => 'process-icon-new', 
+            ];
+        }
     }
-
 
     /**
      * initPageHeaderToolbar
@@ -42,7 +45,6 @@ class SupervisorTasksController extends ModuleAdminController
      */
     public function initPageHeaderToolbar()
     {
-        // Call parent to initialize toolbar first
         parent::initPageHeaderToolbar();
 
         // Hide only the "new_task" button if we're adding a new task
@@ -51,7 +53,6 @@ class SupervisorTasksController extends ModuleAdminController
         }
     }
 
-
     /**
      * render List
      * This method is responsible for rendering the task list table.
@@ -59,6 +60,16 @@ class SupervisorTasksController extends ModuleAdminController
     public function renderList()
     {
         if (!Tools::isSubmit('addnewtask')) {
+            $id_employee = (int)$this->context->employee->id;
+            $id_profile = (int)$this->context->employee->id_profile;
+
+            // if housekeeper, only show their own tasks
+            $where = '';
+            $is_housekeeper = false;
+            if ($id_profile == 3) { // 3 = housekeeper profile (ADJUST IF PROFILE ID IS DIFFERENT)
+                $where = ' AND t.id_employee = '.(int)$id_employee;
+                $is_housekeeper = true;
+            }
 
             $sql = 'SELECT 
                         t.*, 
@@ -74,6 +85,7 @@ class SupervisorTasksController extends ModuleAdminController
                         ON t.id_employee = e.id_employee
                     LEFT JOIN '._DB_PREFIX_.'housekeeping_room_status s
                         ON t.id_room_status = s.id_room_status
+                    WHERE 1 '.$where.'
                     ORDER BY t.deadline ASC';
 
             $tasks = Db::getInstance()->executeS($sql);
@@ -91,7 +103,8 @@ class SupervisorTasksController extends ModuleAdminController
             }
 
             $this->context->smarty->assign([
-                'tasks' => $tasks
+                'tasks' => $tasks,
+                'is_housekeeper' => $is_housekeeper
             ]);
 
             return $this->context->smarty->fetch(
@@ -109,7 +122,8 @@ class SupervisorTasksController extends ModuleAdminController
      */
     public function initContent()
     {
-        if (Tools::isSubmit('addnewtask')) {
+        // Only allow non-housekeepers to access the assign form
+        if (Tools::isSubmit('addnewtask') && $this->context->employee->id_profile != 3) {
             // Fetch staff
             $staffList = Db::getInstance()->executeS('
                 SELECT id_employee, CONCAT(firstname, " ", lastname) AS name
@@ -213,6 +227,7 @@ class SupervisorTasksController extends ModuleAdminController
                     'special_notes' => $special_notes,
                     'id_room_status' => 5,
                     'id_sop' => (int)$id_sop,
+                    'status' => TaskAssignmentModel::STATUS_TO_DO
                 ];
 
                 $created = TaskAssignmentModel::createTask($data);
