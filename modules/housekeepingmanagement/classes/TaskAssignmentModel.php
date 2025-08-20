@@ -3,6 +3,9 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+// Add the missing require for RoomStatusModel
+require_once(_PS_MODULE_DIR_.'housekeepingmanagement/classes/RoomStatusModel.php');
+
 class TaskAssignmentModel extends ObjectModel
 {
     public $id_task;
@@ -14,6 +17,7 @@ class TaskAssignmentModel extends ObjectModel
     public $deadline;
     public $priority;
     public $special_notes;
+    public $status;
     public $date_add;
     public $date_upd;
 
@@ -22,6 +26,7 @@ class TaskAssignmentModel extends ObjectModel
     const PRIORITY_MEDIUM = 'Medium';
     const PRIORITY_HIGH = 'High';
 
+    // Status Constants
     const STATUS_TO_DO = 'to_do';
     const STATUS_IN_PROGRESS = 'in_progress';
     const STATUS_DONE = 'done';
@@ -130,10 +135,11 @@ class TaskAssignmentModel extends ObjectModel
                 $task['completion'] = $completion;
                 
                 // group by status
-                $groupedTasks[$task['status']][] = $task;
+                $status = isset($task['status']) ? $task['status'] : self::STATUS_TO_DO;
+                $groupedTasks[$status][] = $task;
                 
                 $taskCount['total']++;
-                if ($task['status'] == self::STATUS_DONE) {
+                if ($status == self::STATUS_DONE) {
                     $taskCount['completed']++;
                 }
             }
@@ -174,7 +180,7 @@ class TaskAssignmentModel extends ObjectModel
         return $task;
     }
 
-    // amrk task as in progress
+    // mark task as in progress
     public static function markTaskInProgress($id_task, $id_employee)
     {
         $task = new self($id_task);
@@ -191,18 +197,46 @@ class TaskAssignmentModel extends ObjectModel
     // mark task as done
     public static function markTaskDone($id_task, $id_employee)
     {
-        $task = new self($id_task);
-        if (!Validate::isLoadedObject($task) || $task->id_employee != $id_employee) {
+        try {
+            // Start transaction
+            Db::getInstance()->execute('START TRANSACTION');
+            
+            $task = new self($id_task);
+            if (!Validate::isLoadedObject($task) || $task->id_employee != $id_employee) {
+                Db::getInstance()->execute('ROLLBACK');
+                return false;
+            }
+            
+            $task->status = self::STATUS_DONE;
+            $task->date_upd = date('Y-m-d H:i:s');
+            
+            $result = $task->update();
+            
+            if ($result) {
+                // Try to update room status - but don't fail if there's an issue
+                try {
+                    if (class_exists('RoomStatusModel') && $task->id_room) {
+                        RoomStatusModel::updateRoomStatus($task->id_room, RoomStatusModel::STATUS_CLEANED, $id_employee);
+                    }
+                } catch (Exception $e) {
+                    // Log the error but don't fail the task completion
+                    error_log('RoomStatusModel update failed: ' . $e->getMessage());
+                }
+                
+                // Commit transaction
+                Db::getInstance()->execute('COMMIT');
+                return true;
+            } else {
+                // Rollback transaction
+                Db::getInstance()->execute('ROLLBACK');
+                return false;
+            }
+        } catch (Exception $e) {
+            // Rollback transaction on any error
+            Db::getInstance()->execute('ROLLBACK');
+            error_log('TaskAssignmentModel::markTaskDone error: ' . $e->getMessage());
             return false;
         }
-        
-        $task->status = self::STATUS_DONE;
-        $task->date_upd = date('Y-m-d H:i:s');
-        
-        // update room status to "Cleaned"
-        RoomStatusModel::updateRoomStatus($task->id_room, RoomStatusModel::STATUS_CLEANED, $id_employee);
-        
-        return $task->update();
     }
 
     public static function updateTask($id_task, $data)

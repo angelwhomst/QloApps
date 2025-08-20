@@ -1,131 +1,528 @@
 {*
-  Housekeeper Dashboard: Task Board UI
+  Housekeeper Dashboard: Modern Professional Task Board UI
   - 3 columns: To Do, In Progress, Done
-  - Progress summary, search, filters
-  - Responsive, accessible, color contrast
+  - Progress summary (left), filters (right) in header
+  - Task cards: status display matches column, View Task button lower right
 *}
-<style>
-.hk-board-container { padding: 24px; background: #f8f9fa; font-family: Arial, sans-serif; }
-.hk-progress-summary { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
-.hk-progress-bar-bg { background: #e0e0e0; border-radius: 8px; width: 200px; height: 16px; overflow: hidden; }
-.hk-progress-bar { background: #41C588; height: 100%; border-radius: 8px; transition: width 0.3s; }
-.hk-filters-row { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-.hk-search { flex: 1; min-width: 180px; }
-.hk-search input { width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; }
-.hk-filter-select, .hk-filter-date { padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; }
-.hk-board-columns { display: flex; gap: 20px; flex-wrap: wrap; }
-.hk-board-col { flex: 1; min-width: 320px; background: #fff; border-radius: 10px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-.hk-board-col-title { font-weight: bold; font-size: 18px; margin-bottom: 12px; color: #333; }
-.hk-task-card { background: #f7f7fa; border-radius: 8px; margin-bottom: 16px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); }
-.hk-task-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.hk-room-num { font-weight: bold; font-size: 16px; color: #007bff; }
-.hk-room-type { font-size: 13px; color: #666; }
-.hk-task-steps { margin: 10px 0 0 0; padding: 0; list-style: none; }
-.hk-step-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.hk-step-checkbox { width: 18px; height: 18px; accent-color: #41C588; }
-.hk-step-label { flex: 1; font-size: 14px; }
-.hk-step-status { font-size: 12px; font-weight: bold; border-radius: 8px; padding: 2px 8px; }
-.hk-step-status.not_started { background: #f0f0f0; color: #888; }
-.hk-step-status.passed { background: #e7f8f0; color: #41C588; }
-.hk-step-status.failed { background: #fff5e0; color: #F5A623; }
-.hk-task-actions { margin-top: 10px; }
-.hk-view-btn { background: #007bff; color: #fff; border: none; border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 14px; }
-.hk-view-btn:focus { outline: 2px solid #333; }
-.hk-empty-state { color: #aaa; text-align: center; margin: 32px 0; font-size: 15px; }
-@media (max-width: 900px) {
-  .hk-board-columns { flex-direction: column; }
-  .hk-board-col { min-width: 0; }
-}
-</style>
 
-<div class="hk-board-container">
-  {* Progress Summary *}
-  <div class="hk-progress-summary" role="region" aria-label="Task Progress">
-    <span style="font-weight:bold;">Task Done: {$taskCount.completed|default:0}/{$taskCount.total|default:0}</span>
-    <div class="hk-progress-bar-bg" aria-hidden="true">
-      {assign var=progress value=($taskCount.total > 0) ? (100 * $taskCount.completed / $taskCount.total) : 0}
-      <div class="hk-progress-bar" style="width:{$progress|round:0}%"></div>
+<div class="hk-dashboard">
+  <div class="hk-dashboard-header">
+    <div class="hk-progress-container">
+      <div class="hk-progress-summary" role="region" aria-label="Task Progress">
+        <span class="hk-progress-label">Task Done: {$taskCount.completed|default:0}/{$taskCount.total|default:0}</span>
+        <div class="hk-progress-track">
+          {assign var=progress value=($taskCount.total > 0) ? (100 * $taskCount.completed / $taskCount.total) : 0}
+          <div class="hk-progress-bar" style="width:{$progress|round:0}%"></div>
+        </div>
+        <span class="hk-progress-percentage">{$progress|round:0}%</span>
+      </div>
     </div>
-    <span style="color:#41C588; font-weight:bold;">{$progress|round:0}%</span>
+
+    {* Filters horizontally aligned at top right *}
+    <div class="hk-filters-container">
+      <form class="hk-filters-form" method="get" id="hk-filters-form">
+        <input type="hidden" name="controller" value="HousekeeperDashboard">
+        <input type="hidden" name="token" value="{$token}">
+        <input type="text" name="search" placeholder="Search rooms..." value="{$filters.search|escape:'html'}" aria-label="Search tasks" class="hk-filter-search">
+        <select name="status" class="hk-filter-select" aria-label="Filter by status">
+          <option value="">Status</option>
+          <option value="to_do" {if $filters.status=='to_do'}selected{/if}>To Do</option>
+          <option value="in_progress" {if $filters.status=='in_progress'}selected{/if}>In Progress</option>
+          <option value="done" {if $filters.status=='done'}selected{/if}>Done</option>
+        </select>
+        <select name="priority" class="hk-filter-select" aria-label="Filter by priority">
+          <option value="">Priority</option>
+          <option value="High" {if $filters.priority=='High'}selected{/if}>High</option>
+          <option value="Medium" {if $filters.priority=='Medium'}selected{/if}>Medium</option>
+          <option value="Low" {if $filters.priority=='Low'}selected{/if}>Low</option>
+        </select>
+        <input type="date" name="date_from" class="hk-filter-date" value="{$filters.date_from|escape:'html'}" aria-label="From date">
+        <input type="date" name="date_to" class="hk-filter-date" value="{$filters.date_to|escape:'html'}" aria-label="To date">
+        <button type="submit" class="hk-filter-button">Apply</button>
+      </form>
+    </div>
   </div>
 
-  {* Filters and Search *}
-  <form class="hk-filters-row" method="get" id="hk-filters-form">
-    <div class="hk-search">
-      <input type="text" name="search" placeholder="Search room number or name..." value="{$filters.search|escape:'html'}" aria-label="Search tasks">
-    </div>
-    <select name="priority" class="hk-filter-select" aria-label="Filter by priority">
-      <option value="">Priority</option>
-      <option value="High" {if $filters.priority=='High'}selected{/if}>High</option>
-      <option value="Medium" {if $filters.priority=='Medium'}selected{/if}>Medium</option>
-      <option value="Low" {if $filters.priority=='Low'}selected{/if}>Low</option>
-    </select>
-    <input type="date" name="date_from" class="hk-filter-date" value="{$filters.date_from|escape:'html'}" aria-label="From date">
-    <input type="date" name="date_to" class="hk-filter-date" value="{$filters.date_to|escape:'html'}" aria-label="To date">
-    <button type="submit" class="hk-view-btn" style="background:#41C588;">Filter</button>
-  </form>
-
   {* Task Board Columns *}
-  <div class="hk-board-columns" role="list">
+  <div class="hk-board" role="list">
     {foreach from=['to_do'=>'To Do','in_progress'=>'In Progress','done'=>'Done'] key=colKey item=colLabel}
-      <div class="hk-board-col" aria-labelledby="col-{$colKey}">
-        <div class="hk-board-col-title" id="col-{$colKey}">{$colLabel}</div>
-        {if $tasks[$colKey]|@count > 0}
-          {foreach from=$tasks[$colKey] item=task}
-            <div class="hk-task-card" tabindex="0" aria-label="Task for room {$task.room_num|escape:'html'}">
-              <div class="hk-task-header">
-                <span class="hk-room-num">Room {$task.room_num|escape:'html'}</span>
-                <span class="hk-room-type">{$task.room_type_name|escape:'html'}</span>
+      <div class="hk-column" aria-labelledby="col-{$colKey}">
+        <div class="hk-column-header" id="col-{$colKey}">
+          <h2>{$colLabel}</h2>
+          <span class="hk-column-count">{$tasks[$colKey]|@count}</span>
+        </div>
+        <div class="hk-column-content">
+          {if $tasks[$colKey]|@count > 0}
+            {foreach from=$tasks[$colKey] item=task}
+              <div class="hk-task-card" tabindex="0" aria-label="Task for room {$task.room_num|escape:'html'}">
+                <div class="hk-task-card-header">
+                  <div class="hk-room-info">
+                    <span class="hk-room-number">Room {$task.room_num|escape:'html'}</span>
+                    <span class="hk-room-type">{$task.room_type_name|escape:'html'}</span>
+                  </div>
+                  {if isset($task.priority) && $task.priority}
+                  <div class="hk-priority-badge hk-priority-{$task.priority|strtolower|escape:'html'}">
+                    {$task.priority|escape:'html'}
+                  </div>
+                  {/if}
+                </div>
+                <div class="hk-task-checklist">
+                  <ul class="hk-steps-list">
+                    {foreach from=$task.steps item=step name=steps}
+                      {if $smarty.foreach.steps.index < 3}
+                        <li class="hk-step-item {$step.status}">
+                          {$step.step_description|escape:'html'|truncate:50:"..."}
+                        </li>
+                      {/if}
+                    {/foreach}
+                    {if $task.steps|@count > 3}
+                      <li class="hk-step-item hk-step-more">
+                        +{$task.steps|@count - 3} more steps
+                      </li>
+                    {/if}
+                  </ul>
+                </div>
+                <div class="hk-task-card-footer">
+                  <div class="hk-task-status hk-status-{$colKey}">
+                    {if $colKey == 'to_do'}Not Executed
+                    {elseif $colKey == 'in_progress'}In Progress
+                    {else}Done
+                    {/if}
+                  </div>
+                  <a href="index.php?controller=HousekeeperTaskDetail&id_task={$task.id_task}&token={$detail_token}" 
+                     class="hk-view-task-btn" 
+                     role="button" 
+                     aria-label="View details for room {$task.room_num|escape:'html'}">
+                    View Task
+                  </a>
+                </div>
               </div>
-              <ul class="hk-task-steps">
-                {foreach from=$task.steps item=step}
-                  <li class="hk-step-row">
-                    <input type="checkbox" class="hk-step-checkbox" data-task="{$task.id_task}" data-step="{$step.id_task_step}" {if $step.status=='passed'}checked{/if} aria-label="Mark step '{$step.step_description|escape:'html'}' as done" disabled>
-                    <span class="hk-step-label">{$step.step_description|escape:'html'}</span>
-                    <span class="hk-step-status {if $step.status=='passed'}passed{elseif $step.status=='failed'}failed{else}not_started{/if}">
-                      {if $step.status=='passed'}Passed{elseif $step.status=='failed'}Failed{else}Not Executed{/if}
-                    </span>
-                  </li>
-                {/foreach}
-              </ul>
-              <div class="hk-task-actions">
-                <button class="hk-view-btn" data-task="{$task.id_task}" aria-label="View details for room {$task.room_num|escape:'html'}">View Task</button>
-              </div>
+            {/foreach}
+          {else}
+            <div class="hk-empty-column">
+              <div class="hk-empty-icon">📋</div>
+              <p>No tasks in this column</p>
             </div>
-          {/foreach}
-        {else}
-          <div class="hk-empty-state">No tasks found in this column.</div>
-        {/if}
+          {/if}
+        </div>
       </div>
     {/foreach}
   </div>
 </div>
 
-{* Modal for Task Detail (loaded via AJAX) *}
-<div id="hk-task-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4); align-items:center; justify-content:center; z-index:9999;">
-  <div id="hk-task-modal-content" style="background:#fff; border-radius:10px; max-width:500px; width:95%; margin:auto; padding:24px; position:relative;">
-    <button id="hk-modal-close" class="hk-view-btn" style="position:absolute; top:10px; right:10px; background:#ccc; color:#222;">Close</button>
-    <div id="hk-task-modal-body"></div>
-  </div>
-</div>
+<style>
+/* Modern Professional Dashboard Styling */
+.hk-dashboard {
+  font-family: Arial,Helvetica,sans-serif;
+  color: #333;
+  padding: 24px;
+  background: #f5f7fa;
+  border-radius: 8px;
+}
+
+/* Header section with progress and filters */
+.hk-dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.hk-progress-container {
+  flex: 1;
+  min-width: 300px;
+}
+
+.hk-progress-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.hk-progress-label {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.hk-progress-track {
+  flex: 1;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+  min-width: 100px;
+  max-width: 250px;
+}
+
+.hk-progress-bar {
+  height: 100%;
+  background: #38b2ac;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.hk-progress-percentage {
+  font-weight: 600;
+  color: #38b2ac;
+  min-width: 45px;
+}
+
+/* Filters styling - now in the top right */
+.hk-filters-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1 1 auto;
+}
+
+.hk-filters-form {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.hk-filter-group, .hk-filter-search, .hk-filter-select, .hk-filter-date {
+  margin: 0;
+}
+
+.hk-filter-search {
+  width: 160px;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.hk-filter-select {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  background-color: #fff;
+  font-size: 14px;
+  min-width: 110px;
+}
+
+.hk-filter-date {
+  padding: 8px 10px;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  font-size: 14px;
+  width: 120px;
+}
+
+.hk-filter-button {
+  background: #1a57dbbe;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.hk-filter-button:hover {
+  background: #319795;
+}
+
+/* Board columns layout */
+.hk-board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.hk-column {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.hk-column-header {
+  background: #f9fafb;
+  padding: 16px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hk-column-header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.hk-column-count {
+  background: #e5e7eb;
+  color: #4b5563;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.hk-column-content {
+  padding: 16px;
+  flex: 1;
+  overflow-y: auto;
+  max-height: 70vh;
+}
+
+/* Task cards */
+.hk-task-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  padding: 16px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.hk-task-card:hover {
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  transform: translateY(-2px);
+}
+
+.hk-task-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.hk-room-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.hk-room-number {
+  font-weight: 600;
+  font-size: 16px;
+  color: #1a56db;
+}
+
+.hk-room-type {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.hk-priority-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.hk-priority-high {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.hk-priority-medium {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.hk-priority-low {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+/* Checklist styling */
+.hk-task-checklist {
+  margin: 12px 0;
+}
+
+.hk-steps-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hk-step-item {
+  padding: 6px 0;
+  font-size: 14px;
+  color: #4b5563;
+  position: relative;
+  padding-left: 20px;
+}
+
+.hk-step-item:before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 11px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #d1d5db;
+}
+
+.hk-step-item.passed:before {
+  background: #10b981;
+}
+
+.hk-step-item.failed:before {
+  background: #d1d5db;
+}
+
+.hk-step-more {
+  font-style: italic;
+  color: #9ca3af;
+}
+
+/* Footer with status and action button */
+.hk-task-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.hk-task-status {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.hk-status-not_executed {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.hk-status-in_progress {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.hk-status-done {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.hk-status-to_do {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.hk-view-task-btn,
+.hk-view-task-btn:visited,
+.hk-view-task-btn:active {
+  background: #fff;
+  color: #111827 !important;
+  border: 1.5px solid #111827;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.hk-view-task-btn:hover {
+  background: #f3f4f6;
+  color: #111827 !important;
+  border-color: #111827;
+  text-decoration: none;
+}
+
+/* Empty state styling */
+.hk-empty-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: #9ca3af;
+  text-align: center;
+}
+
+.hk-empty-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .hk-board {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .hk-dashboard-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .hk-filters-form {
+    justify-content: flex-start;
+  }
+  
+  .hk-board {
+    grid-template-columns: 1fr;
+  }
+  
+  .hk-filter-search, 
+  .hk-filter-select, 
+  .hk-filter-date {
+    width: 100%;
+  }
+  
+  .hk-filter-dates {
+    width: 100%;
+  }
+}
+
+@media (max-width: 992px) {
+  .hk-dashboard-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .hk-filters-container {
+    justify-content: flex-start;
+    margin-top: 12px;
+  }
+  .hk-filters-form {
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-left: 0;
+  }
+}
+</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Modal logic
-  const modal = document.getElementById('hk-task-modal');
-  const modalBody = document.getElementById('hk-task-modal-body');
-  const closeBtn = document.getElementById('hk-modal-close');
-  document.querySelectorAll('.hk-view-btn[data-task]').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const id_task = btn.getAttribute('data-task');
-      modal.style.display = 'flex';
-      modalBody.innerHTML = '<div style="text-align:center;padding:30px;">Loading...</div>';
-      fetch('index.php?controller=HousekeeperTaskDetail&id_task=' + encodeURIComponent(id_task) + '&ajax=1')
-        .then(resp => resp.text())
-        .then(html => { modalBody.innerHTML = html; });
+  // Auto-submit form when date or select fields change
+  const autoSubmitFields = document.querySelectorAll('.hk-filter-select, .hk-filter-date');
+  autoSubmitFields.forEach(field => {
+    field.addEventListener('change', function() {
+      document.getElementById('hk-filters-form').submit();
     });
   });
-  closeBtn.onclick = () => { modal.style.display = 'none'; };
-  modal.onclick = e => { if (e.target === modal) modal.style.display = 'none'; };
+  
+  // Submit form when pressing enter in search field
+  const searchField = document.querySelector('.hk-filter-search');
+  if (searchField) {
+    searchField.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('hk-filters-form').submit();
+      }
+    });
+  }
 });
 </script>

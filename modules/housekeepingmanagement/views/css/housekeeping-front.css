@@ -79,7 +79,7 @@ margin-right:20px;margin-left:20px;margin-top:15px;}
     display: flex;
     gap: 24px;
     /* make both columns share a single scroll when there are more than 5 or 6 items per column */
-    max-height: 400px; /* ~7 items x 60px/item*/
+    max-height: 390px; /* ~7 items x 60px/item*/
     overflow-y: auto;
     margin-top: 20px;
     margin-bottom: 25px;

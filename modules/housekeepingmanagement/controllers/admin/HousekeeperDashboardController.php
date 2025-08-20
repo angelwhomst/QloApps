@@ -2,9 +2,12 @@
 if (!defined('_PS_VERSION_')) {
     exit;
 }
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 require_once(_PS_MODULE_DIR_.'housekeepingmanagement/classes/TaskAssignmentModel.php');
 require_once(_PS_MODULE_DIR_.'housekeepingmanagement/classes/TaskStepModel.php');
+require_once(_PS_MODULE_DIR_.'housekeepingmanagement/classes/SOPStepModel.php');
 
 class HousekeeperDashboardController extends ModuleAdminController
 {
@@ -12,6 +15,14 @@ class HousekeeperDashboardController extends ModuleAdminController
     {
         parent::__construct();
         $this->bootstrap = true;
+        $this->display = 'view';
+        $this->meta_title = $this->l('Housekeeper Dashboard');
+        
+        // Check if the employee is a housekeeper
+        if ($this->context->employee->id_profile != 3) { // profile ID 3 is for housekeepers
+            // redirect non-housekeepers to another page
+            Tools::redirectAdmin($this->context->link->getAdminLink('AdminSOPManagement'));
+        }
     }
 
     public function initContent()
@@ -30,14 +41,33 @@ class HousekeeperDashboardController extends ModuleAdminController
 
         // get tasks for this employee
         $tasksData = TaskAssignmentModel::getEmployeeTasks($id_employee, $filters);
+        
+        // Add steps to each task
+        foreach ($tasksData['tasks'] as $status => &$statusTasks) {
+            foreach ($statusTasks as &$task) {
+                $task['steps'] = TaskStepModel::getStepsByTask($task['id_task']);
+            }
+        }
 
         $this->context->smarty->assign([
             'tasks' => $tasksData['tasks'],
             'taskCount' => $tasksData['count'],
-            'filters' => $filters
+            'filters' => $filters,
+            'token' => Tools::getAdminTokenLite('HousekeeperDashboard'),
+            'detail_token' => Tools::getAdminTokenLite('HousekeeperTaskDetail')
         ]);
 
-        // $this->setTemplate('housekeepingmanagement/views/templates/admin/housekeeper_dashboard.tpl');
+        $this->setTemplate('housekeeper_dashboard.tpl');
+    }
+
+    public function setTemplate($template)
+    {
+        if (!$this->viewAccess()) {
+            return;
+        }
+
+        $this->template = _PS_MODULE_DIR_ . 'housekeepingmanagement/views/templates/admin/' . $template;
+        return $this->template;
     }
 
     public function postProcess()
@@ -77,5 +107,48 @@ class HousekeeperDashboardController extends ModuleAdminController
             header('Content-Type: application/json');
             die(json_encode($response));
         }
+    }
+    
+    public function renderView()
+    {
+        // use the module's template path and correctly fetch the template
+        $tpl = $this->createTemplate($this->template);
+        
+        // add teh assigned variables to the template if needed
+        // For example, if context variables were lost:
+        $id_employee = (int)$this->context->employee->id;
+        $filters = [
+            'search' => Tools::getValue('search', ''),
+            'priority' => Tools::getValue('priority', ''),
+            'date_from' => Tools::getValue('date_from', ''),
+            'date_to' => Tools::getValue('date_to', '')
+        ];
+        
+        $tasksData = TaskAssignmentModel::getEmployeeTasks($id_employee, $filters);
+        
+        // add steps to each task
+        foreach ($tasksData['tasks'] as $status => &$statusTasks) {
+            foreach ($statusTasks as &$task) {
+                $task['steps'] = TaskStepModel::getStepsByTask($task['id_task']);
+            }
+        }
+        
+        $tpl->assign([
+            'tasks' => $tasksData['tasks'],
+            'taskCount' => $tasksData['count'],
+            'filters' => $filters,
+            'token' => Tools::getAdminTokenLite('HousekeeperDashboard'),
+            'detail_token' => Tools::getAdminTokenLite('HousekeeperTaskDetail')
+        ]);
+        
+        return $tpl->fetch();
+    }
+    
+    public function createTemplate($tpl_name)
+    {
+        if (file_exists($tpl_name)) {
+            return $this->context->smarty->createTemplate($tpl_name, $this->context->smarty);
+        }
+        return parent::createTemplate($tpl_name);
     }
 }
