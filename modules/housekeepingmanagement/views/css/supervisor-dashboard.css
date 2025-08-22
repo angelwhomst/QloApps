@@ -1,0 +1,24 @@
+.date-filter-wrapper { position: relative; display: inline-block; }
+.date-filter-dropdown { display: none; position: absolute; right: 0; margin-top: 5px; background: #fff; border: 1px solid #ccc; border-radius: 6px; padding: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 10; width: 220px; }
+.date-filter-dropdown input { width: 100%; padding: 6px 30px 6px 10px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 8px; font-size: 14px; }
+.date-filter-dropdown .icon { position: absolute; right: 12px; top: 9px; pointer-events: none; color: #666; }
+.date-input-container { position: relative; background: #eee; }
+table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; table-layout: fixed; }
+th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; word-wrap: break-word; background: #fff; }
+thead { background: #f9f9f9; }
+th { font-weight: 600; color: #555; }
+tbody tr:hover { background: #f4f8ff; }
+.btn { background: #eee; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+.btn.active { background: #007bff; color: white; }
+select { padding: 6px 10px; border-radius: 4px; border: 1px solid #ccc; }
+input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0; cursor: pointer; }
+input[type="date"]::-webkit-inner-spin-button { display: none; }
+#dateFilterBtn { background: #fff; border: 1px solid #ccc; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+#dateFilterBtn:hover { background: #f0f0f0; }
+.action-buttons { display: flex; }
+.action-buttons .btn-action { margin: 0; }
+.btn-action { background: #fff; border: 1px solid #ccc; cursor: pointer; font-size: 16px; color: #555; padding: 6px 10px; transition: all 0.2s ease; margin: 0; }
+.btn-action:first-child { border-radius: 6px 0 0 6px; }
+.btn-action:not(:first-child):not(:last-child) { border-left: none; }
+.btn-action:last-child { border-radius: 0 6px 6px 0; border-left: none; }
+.btn-action:hover { color: #007bff; border-color: #007bff; background: #f8f9fa; }
