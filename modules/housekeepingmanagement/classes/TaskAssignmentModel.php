@@ -20,6 +20,8 @@ class TaskAssignmentModel extends ObjectModel
     public $status;
     public $date_add;
     public $date_upd;
+    public $deleted;
+    
 
     // Priority Constants
     const PRIORITY_LOW = 'Low';
@@ -44,6 +46,7 @@ class TaskAssignmentModel extends ObjectModel
             'priority' => ['type' => self::TYPE_STRING, 'validate' => 'isGenericName', 'required' => true],
             'status' => ['type' => self::TYPE_STRING, 'validate' => 'isGenericName', 'required' => true],
             'special_notes' => ['type' => self::TYPE_STRING, 'validate' => 'isCleanHtml'],
+            'deleted' => ['type' => self::TYPE_BOOL, 'validate' => 'isBool'],
             'date_add' => ['type' => self::TYPE_DATE, 'validate' => 'isDate'],
             'date_upd' => ['type' => self::TYPE_DATE, 'validate' => 'isDate'],
         ],
@@ -53,6 +56,7 @@ class TaskAssignmentModel extends ObjectModel
     {
         $this->date_add = date('Y-m-d H:i:s');
         $this->date_upd = date('Y-m-d H:i:s');
+        $this->deleted = 0;
         return parent::add($autodate, $null_values);
     }
 
@@ -74,6 +78,7 @@ class TaskAssignmentModel extends ObjectModel
         $task->priority = $data['priority'] ?? self::PRIORITY_LOW;
         $task->status = $data['status'] ?? self::STATUS_TO_DO;
         $task->special_notes = $data['special_notes'] ?? '';
+        $task->deleted = 0;
         $task->date_add = date('Y-m-d H:i:s');
         $task->date_upd = date('Y-m-d H:i:s');
         
@@ -239,6 +244,18 @@ class TaskAssignmentModel extends ObjectModel
         }
     }
 
+    public static function getTaskById($id_task)
+    {
+        $sql = new DbQuery();
+        $sql->select('*');
+        $sql->from('housekeeping_task_assignment');
+        $sql->where('id_task = ' . (int)$id_task);
+
+        $task = Db::getInstance()->getRow($sql);
+        return $task ? $task : false;
+    }
+
+
     public static function updateTask($id_task, $data)
     {
         $task = new self($id_task);
@@ -261,7 +278,8 @@ class TaskAssignmentModel extends ObjectModel
         if (!Validate::isLoadedObject($task)) {
             return false;
         }
-        return $task->delete();
+        $task->deleted = 1; 
+        return $task->update();
     }
 
     public static function getTasks($filters = array())
@@ -269,6 +287,7 @@ class TaskAssignmentModel extends ObjectModel
         $sql = new DbQuery();
         $sql->select('*');
         $sql->from('housekeeping_task_assignment');
+        $sql->where('deleted = 0');
 
         $allowedColumns = ['id_task','id_room_status','id_room','id_employee','priority','deadline'];
         foreach ($filters as $key => $value) {

@@ -114,6 +114,7 @@ class HousekeepingManagement extends Module
             `special_notes` text DEFAULT NULL,
             `date_add` datetime NOT NULL,
             `date_upd` datetime NOT NULL,
+            `deleted` tinyint(1) NOT NULL DEFAULT 0,
             PRIMARY KEY (`id_task`),
             KEY `id_room` (`id_room`),
             KEY `id_employee` (`id_employee`),
