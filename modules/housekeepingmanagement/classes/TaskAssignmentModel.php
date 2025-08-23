@@ -213,31 +213,28 @@ class TaskAssignmentModel extends ObjectModel
             }
             
             $task->status = self::STATUS_DONE;
+            $task->id_room_status = 5; // 5 = "To Be Inspected"
             $task->date_upd = date('Y-m-d H:i:s');
             
             $result = $task->update();
             
             if ($result) {
-                // Try to update room status - but don't fail if there's an issue
+                // try to update room status - but don't fail if there's an issue
                 try {
                     if (class_exists('RoomStatusModel') && $task->id_room) {
-                        RoomStatusModel::updateRoomStatus($task->id_room, RoomStatusModel::STATUS_CLEANED, $id_employee);
+                        RoomStatusModel::updateRoomStatus($task->id_room, RoomStatusModel::STATUS_TO_BE_INSPECTED, $id_employee);
                     }
                 } catch (Exception $e) {
-                    // Log the error but don't fail the task completion
                     error_log('RoomStatusModel update failed: ' . $e->getMessage());
                 }
-                
-                // Commit transaction
+                // commit trsnadaction
                 Db::getInstance()->execute('COMMIT');
                 return true;
-            } else {
-                // Rollback transaction
+            } else { // rollback transaction
                 Db::getInstance()->execute('ROLLBACK');
                 return false;
             }
         } catch (Exception $e) {
-            // Rollback transaction on any error
             Db::getInstance()->execute('ROLLBACK');
             error_log('TaskAssignmentModel::markTaskDone error: ' . $e->getMessage());
             return false;
