@@ -301,7 +301,7 @@ class SupervisorTasksController extends ModuleAdminController
                     'deadline' => $deadline,
                     'priority' => $priority,
                     'special_notes' => $special_notes,
-                    'id_room_status' => 5, // Initial status
+                    'id_room_status' => 4, // Initial status ("NOT CLEANED")
                     'id_sop' => (int)$id_sop,
                     'status' => TaskAssignmentModel::STATUS_TO_DO
                 ];

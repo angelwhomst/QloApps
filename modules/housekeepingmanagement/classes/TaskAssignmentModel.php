@@ -160,10 +160,11 @@ class TaskAssignmentModel extends ObjectModel
     public static function getTaskWithDetails($id_task, $id_employee = null)
     {
         $sql = new DbQuery();
-        $sql->select('t.*, r.room_num, s.title as sop_title, p.name as room_type_name');
+        $sql->select('t.*, r.room_num, r.floor, s.status as room_status, sop.title as sop_title, p.name as room_type_name');
         $sql->from('housekeeping_task_assignment', 't');
         $sql->leftJoin('htl_room_information', 'r', 't.id_room = r.id');
-        $sql->leftJoin('housekeeping_sop', 's', 't.id_sop = s.id_sop');
+        $sql->leftJoin('housekeeping_room_status', 's', 't.id_room_status = s.id_room_status');
+        $sql->leftJoin('housekeeping_sop', 'sop', 't.id_sop = sop.id_sop');
         $sql->leftJoin('product_lang', 'p', 'r.id_product = p.id_product AND p.id_lang = '.(int)Context::getContext()->language->id);
         $sql->where('t.id_task = '.(int)$id_task);
         
@@ -213,31 +214,34 @@ class TaskAssignmentModel extends ObjectModel
             }
             
             $task->status = self::STATUS_DONE;
+            $task->id_room_status = 5; // 5 = "To Be Inspected"
             $task->date_upd = date('Y-m-d H:i:s');
             
             $result = $task->update();
             
             if ($result) {
-                // Try to update room status - but don't fail if there's an issue
+                // try to update room status - but don't fail if there's an issue
                 try {
                     if (class_exists('RoomStatusModel') && $task->id_room) {
-                        RoomStatusModel::updateRoomStatus($task->id_room, RoomStatusModel::STATUS_CLEANED, $id_employee);
+                        RoomStatusModel::updateRoomStatus(
+                            $task->id_room, 
+                            RoomStatusModel::STATUS_TO_BE_INSPECTED,
+                            $id_employee,
+                            'Task marked as done, awaiting inspection.'
+                        );
                     }
                 } catch (Exception $e) {
-                    // Log the error but don't fail the task completion
                     error_log('RoomStatusModel update failed: ' . $e->getMessage());
+                    // Continue despite error in status update
                 }
                 
-                // Commit transaction
                 Db::getInstance()->execute('COMMIT');
                 return true;
             } else {
-                // Rollback transaction
                 Db::getInstance()->execute('ROLLBACK');
                 return false;
             }
         } catch (Exception $e) {
-            // Rollback transaction on any error
             Db::getInstance()->execute('ROLLBACK');
             error_log('TaskAssignmentModel::markTaskDone error: ' . $e->getMessage());
             return false;
