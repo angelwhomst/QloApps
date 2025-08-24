@@ -34,13 +34,19 @@ class SupervisorInspectionController extends ModuleAdminController
     {
         parent::initContent();
 
+        // handle "View" action for view-only inspection detail
+        if (Tools::isSubmit('viewtask') && Tools::getValue('id_task')) {
+            $id_task = (int)Tools::getValue('id_task');
+            $this->renderInspectionDetail($id_task, true); // pass true for view_only
+            return;
+        }
+
         // handle inspection detail view
         if (Tools::isSubmit('inspect_task') && Tools::getValue('id_task')) {
             $id_task = (int)Tools::getValue('id_task');
             $this->renderInspectionDetail($id_task);
-            return; // Prevent further rendering
+            return;
         } else {
-            // render inspection dashboard (list of rooms to inspect)
             $this->renderInspectionDashboard();
         }
     }
@@ -112,9 +118,9 @@ class SupervisorInspectionController extends ModuleAdminController
     /**
      * render the inspection detail page for a specific task
      */
-    protected function renderInspectionDetail($id_task)
+    protected function renderInspectionDetail($id_task, $view_only = false)
     {
-        // get task details 
+        // get task details
         $task = $this->getTaskDetails($id_task);
 
         if (!$task) {
@@ -123,7 +129,7 @@ class SupervisorInspectionController extends ModuleAdminController
             return;
         }
 
-        if ($task['room_status'] !== RoomStatusModel::STATUS_TO_BE_INSPECTED) {
+        if (!$view_only && $task['room_status'] !== RoomStatusModel::STATUS_TO_BE_INSPECTED) {
             $this->context->smarty->assign('error_message', $this->l('This task is not available for inspection.'));
             $this->setTemplate('error.tpl');
             return;
@@ -143,7 +149,8 @@ class SupervisorInspectionController extends ModuleAdminController
             'back_link' => $this->context->link->getAdminLink('SupervisorInspection'),
             'module_dir' => $module_dir,
             'current_token' => Tools::getAdminTokenLite('SupervisorInspection'),
-            'current_url' => $this->context->link->getAdminLink('SupervisorInspection')
+            'current_url' => $this->context->link->getAdminLink('SupervisorInspection'),
+            'view_only' => $view_only
         ]);
 
         $this->setTemplate('inspection_detail.tpl');
@@ -284,7 +291,6 @@ class SupervisorInspectionController extends ModuleAdminController
     {
         // start transaction
         Db::getInstance()->execute('START TRANSACTION');
-        
         try {
             // get the task
             $task = new TaskAssignmentModel($id_task);
@@ -302,38 +308,16 @@ class SupervisorInspectionController extends ModuleAdminController
                 return false;
             }
 
-            //update task status based on inspection reuslt
-            $failedStatusId = (int)Db::getInstance()->getValue(
-                'SELECT id_room_status FROM '._DB_PREFIX_.'housekeeping_room_status WHERE status = "'.pSQL(RoomStatusModel::STATUS_FAILED_INSPECTION).'"'
-            );
-            $cleanedStatusId = (int)Db::getInstance()->getValue(
-                'SELECT id_room_status FROM '._DB_PREFIX_.'housekeeping_room_status WHERE status = "'.pSQL(RoomStatusModel::STATUS_CLEANED).'"'
-            );
-
-            if (!$failedStatusId && !$approved) {
-                Db::getInstance()->execute('ROLLBACK');
-                error_log("[HK] Failed Inspection status ID not found in DB.");
-                return false;
+            // Update task status based on inspection result
+            if ($approved) {
+                $task->id_room_status = 2; // Cleaned
+            } else {
+                $task->id_room_status = 1; // Failed Inspection
             }
-            if (!$cleanedStatusId && $approved) {
-                Db::getInstance()->execute('ROLLBACK');
-                error_log("[HK] Cleaned status ID not found in DB.");
-                return false;
-            }
-
-            $task->id_room_status = $approved ? $cleanedStatusId : $failedStatusId;
             $task->date_upd = date('Y-m-d H:i:s');
             if (!$task->update()) {
                 Db::getInstance()->execute('ROLLBACK');
                 error_log("[HK] Failed to update task record for task $id_task");
-                return false;
-            }
-
-            // Update room status
-            $newStatus = $approved ? RoomStatusModel::STATUS_CLEANED : RoomStatusModel::STATUS_FAILED_INSPECTION;
-            if (!RoomStatusModel::updateRoomStatus($task->id_room, $newStatus, $this->context->employee->id, $remarks)) {
-                Db::getInstance()->execute('ROLLBACK');
-                error_log("[HK] Failed to update room status for room {$task->id_room} to $newStatus");
                 return false;
             }
 

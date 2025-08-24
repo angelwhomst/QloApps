@@ -28,7 +28,7 @@ class RoomStatusModel extends ObjectModel
 {
     public $id_room_status;
     public $id_room;
-    public $room_num;
+    // public $room_num;
     public $status;
     public $notes;
     public $assigned_staff_id;
@@ -50,7 +50,7 @@ class RoomStatusModel extends ObjectModel
         'primary' => 'id_room_status',
         'fields' => array(
             'id_room' => array('type' => self::TYPE_INT, 'validate' => 'isUnsignedId', 'required' => true),
-            'room_num' => array('type' => self::TYPE_STRING, 'validate' => 'isGenericName', 'required' => true, 'size' => 50),
+            // 'room_num' => array('type' => self::TYPE_STRING, 'validate' => 'isGenericName', 'required' => true, 'size' => 50),
             'status' => array('type' => self::TYPE_STRING, 'validate' => 'isGenericName', 'required' => true, 'size' => 20),
             'notes' => array('type' => self::TYPE_HTML, 'validate' => 'isCleanHtml', 'size' => 65535),
             'assigned_staff_id' => array('type' => self::TYPE_INT, 'validate' => 'isUnsignedId'),
@@ -87,7 +87,7 @@ class RoomStatusModel extends ObjectModel
             // Create new record
             $roomStatus = new RoomStatusModel();
             $roomStatus->id_room = $id_room;
-            $roomStatus->room_num = $roomInfo['room_num'];
+            // $roomStatus->room_num = $roomInfo['room_num'];
             $roomStatus->date_add = date('Y-m-d H:i:s');
         }
         

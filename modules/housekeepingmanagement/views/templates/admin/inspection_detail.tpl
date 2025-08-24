@@ -131,21 +131,28 @@
             {/if}
         </div>
 
-        <div class="hk-inspection-form">
-            <h4>{l s='Inspection Remarks' mod='housekeepingmanagement'}</h4>
-            <div class="form-group">
-                <textarea id="inspection-remarks" class="form-control" rows="4" placeholder="{l s='Enter any remarks or feedback about the cleaning quality...' mod='housekeepingmanagement'}"></textarea>
+        {if isset($view_only) && $view_only}
+            <div class="alert alert-info" style="margin-top: 25px;">
+                <i class="icon-info-sign"></i>
+                {l s='This room is not yet up for inspection. You can only view the cleaning details and checklist at this time.' mod='housekeepingmanagement'}
             </div>
-            
-            <div class="hk-actions">
-                <button type="button" id="btn-reject-inspection" class="btn btn-danger">
-                    <i class="icon-times"></i> {l s='Reject & Return for Cleaning' mod='housekeepingmanagement'}
-                </button>
-                <button type="button" id="btn-approve-inspection" class="btn btn-success">
-                    <i class="icon-check"></i> {l s='Approve Cleaning' mod='housekeepingmanagement'}
-                </button>
+        {else}
+            <div class="hk-inspection-form">
+                <h4>{l s='Inspection Remarks' mod='housekeepingmanagement'}</h4>
+                <div class="form-group">
+                    <textarea id="inspection-remarks" class="form-control" rows="4" placeholder="{l s='Enter any remarks or feedback about the cleaning quality...' mod='housekeepingmanagement'}"></textarea>
+                </div>
+                
+                <div class="hk-actions">
+                    <button type="button" id="btn-reject-inspection" class="btn btn-danger">
+                        <i class="icon-times"></i> {l s='Reject & Return for Cleaning' mod='housekeepingmanagement'}
+                    </button>
+                    <button type="button" id="btn-approve-inspection" class="btn btn-success">
+                        <i class="icon-check"></i> {l s='Approve Cleaning' mod='housekeepingmanagement'}
+                    </button>
+                </div>
             </div>
-        </div>
+        {/if}
     </div>
 </div>
 

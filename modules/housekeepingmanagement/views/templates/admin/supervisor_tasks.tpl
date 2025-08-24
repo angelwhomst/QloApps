@@ -305,18 +305,21 @@
                 {if !isset($is_housekeeper) || !$is_housekeeper}
                 <td>
                     <div class="action-buttons">
-                        {if $task.room_status == "To Be Inspected"}
-                        <a href="{$link->getAdminLink('SupervisorInspection')|escape:'html':'UTF-8'}&inspect_task=1&id_task={$task.id_task|intval}" 
-                        class="btn-action view-btn" title="Inspect Room" >
-                            <i class="fas fa-search"></i>
-                        </a>
-                        {/if}
+                        <button class="btn-action view-btn" title="View" data-task-id="{$task.id_task}">
+                            <i class="fas fa-eye"></i>
+                        </button>
                         <button class="btn-action edit-btn" title="Edit" data-task-id="{$task.id_task}">
                             <i class="fas fa-edit"></i>
                         </button>
                         <button class="btn-action delete-btn" title="Delete" data-task-id="{$task.id_task}">
                             <i class="fas fa-trash"></i>
                         </button>
+                        {if $task.room_status == "To Be Inspected"}
+                        <a href="{$link->getAdminLink('SupervisorInspection')|escape:'html':'UTF-8'}&inspect_task=1&id_task={$task.id_task|intval}" 
+                        class="btn-action" title="Inspect Room">
+                            <i class="fas fa-search"></i>
+                        </a>
+                        {/if}
                     </div>
                 </td>
                 {/if}
@@ -549,7 +552,7 @@
         document.querySelectorAll('.view-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const taskId = this.getAttribute('data-task-id');
-                window.location.href = '{/literal}{$link->getAdminLink('SupervisorTasks')|escape:'javascript'}{literal}&viewtask=1&id_task=' + taskId;
+                window.location.href = '{/literal}{$link->getAdminLink('SupervisorInspection')|escape:'javascript'}{literal}&viewtask=1&id_task=' + taskId;
             });
         });
 
