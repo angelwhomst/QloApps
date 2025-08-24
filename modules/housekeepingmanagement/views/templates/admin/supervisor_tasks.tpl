@@ -168,6 +168,11 @@
             <button class="btn" data-filter="To Be Inspected">To Be Inspected</button>
             <button class="btn" data-filter="Failed Inspection">Failed Inspection</button>
         </div>
+            {if !isset($is_housekeeper) || !$is_housekeeper}
+            <a href="{$link->getAdminLink('SupervisorInspection')|escape:'html':'UTF-8'}" class="btn" style="background: #E0F0FF; color: #007bff; font-weight: 500; margin-left: 22rem;">
+                <i class="fas fa-search"></i> Rooms to Inspect ({if isset($summary.to_be_inspected)}{$summary.to_be_inspected}{else}0{/if})
+            </a>
+            {/if}
         <div class="filters" style="display: flex; gap: 10px; align-items: center;">
             <select>
                 <option value="">Priority</option>
@@ -300,13 +305,16 @@
                 {if !isset($is_housekeeper) || !$is_housekeeper}
                 <td>
                     <div class="action-buttons">
-                        <button class="btn-action view-btn" title="View Task" data-task-id="{$task.id_task}">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn-action edit-btn" title="Edit Task" data-task-id="{$task.id_task}">
+                        {if $task.room_status == "To Be Inspected"}
+                        <a href="{$link->getAdminLink('SupervisorInspection')|escape:'html':'UTF-8'}&inspect_task=1&id_task={$task.id_task|intval}" 
+                        class="btn-action view-btn" title="Inspect Room" >
+                            <i class="fas fa-search"></i>
+                        </a>
+                        {/if}
+                        <button class="btn-action edit-btn" title="Edit" data-task-id="{$task.id_task}">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn-action delete-btn" title="Delete Task" data-task-id="{$task.id_task}">
+                        <button class="btn-action delete-btn" title="Delete" data-task-id="{$task.id_task}">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>

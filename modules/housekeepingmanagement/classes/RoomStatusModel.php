@@ -301,4 +301,94 @@ class RoomStatusModel extends ObjectModel
         
         return $results;
     }
+
+
+    /**
+     * Get tasks pending inspection
+     * 
+     * @return array Array of tasks
+     */
+    public static function getTasksPendingInspection() 
+    {
+        $sql = new DbQuery();
+        $sql->select('t.*, r.room_num, r.floor, e.firstname, e.lastname, p.name as room_type_name')
+            ->from('housekeeping_task_assignment', 't')
+            ->leftJoin('htl_room_information', 'r', 't.id_room = r.id')
+            ->leftJoin('employee', 'e', 't.id_employee = e.id_employee')
+            ->leftJoin('product_lang', 'p', 'r.id_product = p.id_product AND p.id_lang = '.(int)Context::getContext()->language->id)
+            ->leftJoin('housekeeping_room_status', 's', 't.id_room_status = s.id_room_status')
+            ->where('t.deleted = 0')
+            ->where('s.status = "'.self::STATUS_TO_BE_INSPECTED.'"');
+        
+        return Db::getInstance()->executeS($sql);
+    }
+
+    /**
+     * Mark a task as passed inspection
+     * 
+     * @param int $id_task Task ID
+     * @param int $id_employee Supervisor employee ID
+     * @param string $remarks Optional remarks
+     * @return bool Success
+     */
+    public static function markTaskPassedInspection($id_task, $id_employee, $remarks = '')
+    {
+        // Get the task
+        $task = new TaskAssignmentModel($id_task);
+        if (!Validate::isLoadedObject($task)) {
+            return false;
+        }
+        
+        // Update task
+        $task->id_room_status = 2; // 2 = "Cleaned" status
+        $task->date_upd = date('Y-m-d H:i:s');
+        if (!$task->update()) {
+            return false;
+        }
+        
+        // Update room status
+        return self::updateRoomStatus(
+            $task->id_room,
+            self::STATUS_CLEANED,
+            $id_employee,
+            $remarks ?: 'Inspection passed.'
+        );
+    }
+
+    /**
+     * Mark a task as failed inspection
+     * 
+     * @param int $id_task Task ID
+     * @param int $id_employee Supervisor employee ID
+     * @param string $remarks Required remarks
+     * @return bool Success
+     */
+    public static function markTaskFailedInspection($id_task, $id_employee, $remarks)
+    {
+        if (empty($remarks)) {
+            return false; // Remarks are required for failed inspections
+        }
+        
+        // Get the task
+        $task = new TaskAssignmentModel($id_task);
+        if (!Validate::isLoadedObject($task)) {
+            return false;
+        }
+        
+        // Reset task status to in_progress so it can be fixed
+        $task->status = TaskAssignmentModel::STATUS_IN_PROGRESS;
+        $task->id_room_status = 1; // 1 = "Failed Inspection" status
+        $task->date_upd = date('Y-m-d H:i:s');
+        if (!$task->update()) {
+            return false;
+        }
+        
+        // Update room status
+        return self::updateRoomStatus(
+            $task->id_room,
+            self::STATUS_FAILED_INSPECTION,
+            $id_employee,
+            $remarks
+        );
+    }
 }
