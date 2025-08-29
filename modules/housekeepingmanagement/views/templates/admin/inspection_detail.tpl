@@ -42,8 +42,8 @@
                 </div>
             </div>
             <div class="hk-task-meta">
-                <span class="hk-status hk-status-pending" id="hk-status-badge" aria-live="polite">
-                    {l s='To Be Inspected' mod='housekeepingmanagement'}
+                <span class="hk-status hk-status-{if $task.room_status|lower == 'to be inspected'}pending{elseif $task.room_status|lower == 'cleaned'}done{elseif $task.room_status|lower == 'failed inspection'}failed{else}other{/if}" id="hk-status-badge" aria-live="polite">
+                    {$task.room_status|escape:'html'}
                 </span>
                 {assign var=doneCount value=$task.completion.completed|default:0}
                 {assign var=totalCount value=$task.completion.total|default:0}
@@ -132,10 +132,17 @@
         </div>
 
         {if isset($view_only) && $view_only}
-            <div class="alert alert-info" style="margin-top: 25px;">
-                <i class="icon-info-sign"></i>
-                {l s='This room is not yet up for inspection. You can only view the cleaning details and checklist at this time.' mod='housekeepingmanagement'}
-            </div>
+            {if $task.room_status|lower == 'to be inspected'}
+                <div class="alert alert-info" style="margin-top: 25px;">
+                    <i class="icon-info-sign"></i>
+                    {l s='This task is up for inspection. Go to the Room Inspection tab to perform inspection properly.' mod='housekeepingmanagement'}
+                </div>
+            {else}
+                <div class="alert alert-info" style="margin-top: 25px;">
+                    <i class="icon-info-sign"></i>
+                    {l s='This room is not yet up for inspection. You can only view the cleaning details and checklist at this time.' mod='housekeepingmanagement'}
+                </div>
+            {/if}
         {else}
             <div class="hk-inspection-form">
                 <h4>{l s='Inspection Remarks' mod='housekeepingmanagement'}</h4>
