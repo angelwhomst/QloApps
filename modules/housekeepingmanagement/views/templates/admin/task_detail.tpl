@@ -46,6 +46,16 @@
         </div>
     </div>
 
+    {* show disclaimer if task failed inspection and is now reassigned as to_do, but all steps are already passed *}
+    {if $task.status == 'to_do' && $task.completion.completed == $task.completion.total && $task.completion.total > 0}
+        <div class="hk-failed-inspection-disclaimer" style="background:#fff3cd; color:#856404; border:1px solid #ffeeba; border-radius:6px; padding:16px; margin:16px 0; font-size:15px; display:flex; align-items:center; gap:10px;">
+            <i class="fas fa-exclamation-triangle" style="font-size:20px; color:#f5a623;"></i>
+            <span>
+                This task failed inspection. Please take time to carefully redo the cleaning and checklist before marking as done again.
+            </span>
+        </div>
+    {/if}
+
     {if isset($task.special_notes) && $task.special_notes}
     <div class="hk-task-note" id="hk-task-note">
         <p class="hk-note-text">{$task.special_notes|escape:'html'}</p>
