@@ -105,21 +105,64 @@ class HousekeepingManagement extends Module
             `id_task` int(11) NOT NULL AUTO_INCREMENT,
             `id_room_status` int(11) NOT NULL,
             `id_room` int(11) NOT NULL,
+            `id_sop` int(11) DEFAULT NULL, /* SOP binding */
             `id_employee` int(11) NOT NULL,
             `time_slot` varchar(50) NOT NULL,
             `deadline` datetime NOT NULL,
             `priority` enum("High","Medium","Low") NOT NULL DEFAULT "Low",
+            `status` enum("to_do","in_progress","done") NOT NULL DEFAULT "to_do",
             `special_notes` text DEFAULT NULL,
             `date_add` datetime NOT NULL,
             `date_upd` datetime NOT NULL,
+            `deleted` tinyint(1) NOT NULL DEFAULT 0,
             PRIMARY KEY (`id_task`),
             KEY `id_room` (`id_room`),
             KEY `id_employee` (`id_employee`),
             KEY `id_room_status` (`id_room_status`),
+            KEY `id_sop` (`id_sop`),
             CONSTRAINT `fk_task_room_status` FOREIGN KEY (`id_room_status`) 
                 REFERENCES `'._DB_PREFIX_.'housekeeping_room_status` (`id_room_status`) 
                 ON DELETE CASCADE 
+                ON UPDATE CASCADE,
+            CONSTRAINT `fk_task_sop` FOREIGN KEY (`id_sop`)
+                REFERENCES `'._DB_PREFIX_.'housekeeping_sop` (`id_sop`)
+                ON DELETE SET NULL
                 ON UPDATE CASCADE
+        ) ENGINE='._MYSQL_ENGINE_.' DEFAULT CHARSET=utf8;';
+
+        // create Task Steps table 
+        $sql[] = 'CREATE TABLE IF NOT EXISTS `'._DB_PREFIX_.'housekeeping_task_step` (
+            `id_task_step` int(11) NOT NULL AUTO_INCREMENT,
+            `id_task` int(11) NOT NULL,
+            `id_sop_step` int(11) NOT NULL,
+            `status` enum("not_started","passed","failed") NOT NULL DEFAULT "not_started",
+            `notes` text DEFAULT NULL,
+            `date_add` datetime NOT NULL,
+            `date_upd` datetime NOT NULL,
+            PRIMARY KEY (`id_task_step`),
+            KEY `id_task` (`id_task`),
+            KEY `id_sop_step` (`id_sop_step`),
+            CONSTRAINT `fk_task_step_task` FOREIGN KEY (`id_task`)
+                REFERENCES `'._DB_PREFIX_.'housekeeping_task_assignment` (`id_task`)
+                ON DELETE CASCADE
+                ON UPDATE CASCADE,
+            CONSTRAINT `fk_task_step_sop_step` FOREIGN KEY (`id_sop_step`)
+                REFERENCES `'._DB_PREFIX_.'housekeeping_sop_step` (`id_sop_step`)
+                ON DELETE CASCADE
+                ON UPDATE CASCADE
+        ) ENGINE='._MYSQL_ENGINE_.' DEFAULT CHARSET=utf8;';
+
+        // create Inspection History table
+        $sql[] = 'CREATE TABLE IF NOT EXISTS `'._DB_PREFIX_.'housekeeping_inspection_history` (
+            `id_inspection` int(11) NOT NULL AUTO_INCREMENT,
+            `id_task` int(11) NOT NULL,
+            `id_employee` int(11) NOT NULL,
+            `approved` tinyint(1) NOT NULL,
+            `remarks` text,
+            `date_add` datetime NOT NULL,
+            PRIMARY KEY (`id_inspection`),
+            KEY `id_task` (`id_task`),
+            KEY `id_employee` (`id_employee`)
         ) ENGINE='._MYSQL_ENGINE_.' DEFAULT CHARSET=utf8;';
 
         // execute all sql queries
@@ -136,6 +179,8 @@ class HousekeepingManagement extends Module
     public function uninstallDb()
     {
         $sql = array();
+        $sql[] = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.'housekeeping_inspection_history`';
+        $sql[] = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.'housekeeping_task_step`';
         $sql[] = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.'housekeeping_task_assignment`';
         $sql[] = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.'housekeeping_room_status`';
         $sql[] = 'DROP TABLE IF EXISTS `'._DB_PREFIX_.'housekeeping_sop_step`';
@@ -215,7 +260,10 @@ class HousekeepingManagement extends Module
         if (
             $controller == 'AdminHousekeepingManagement' || 
             $controller == 'AdminSOPManagement' || 
-            $controller == 'SupervisorTasks'
+            $controller == 'SupervisorTasks' ||
+            $controller == 'SupervisorInspection' ||
+            $controller == 'HousekeeperDashboard' ||
+            $controller == 'HousekeeperTaskDetail'
         ) {
             // add SweetAlert2
             $this->context->controller->addJquery();
@@ -237,7 +285,10 @@ class HousekeepingManagement extends Module
         if (
             $controller == 'AdminHousekeepingManagement' || 
             $controller == 'AdminSOPManagement' || 
-            $controller == 'SupervisorTasks'
+            $controller == 'SupervisorTasks' ||
+            $controller == 'SupervisorInspection' ||
+            $controller == 'HousekeeperDashboard' ||
+            $controller == 'HousekeeperTaskDetail'
         ) {
             // add SweetAlert2
             $this->context->controller->addJquery();
@@ -298,6 +349,42 @@ class HousekeepingManagement extends Module
         $taskTab->module = $this->name;
         $taskTab->add();
 
+        // subtab for Housekeeper Dashboard Tab
+        $housekeeperTab = new Tab();
+        $housekeeperTab->active = 1;
+        $housekeeperTab->class_name = 'HousekeeperDashboard';
+        $housekeeperTab->name = array();
+        foreach (Language::getLanguages(true) as $lang) {
+            $housekeeperTab->name[$lang['id_lang']] = 'Housekeeper Dashboard';
+        }
+        $housekeeperTab->id_parent = (int)Tab::getIdFromClassName('AdminHousekeepingManagement');
+        $housekeeperTab->module = $this->name;
+        $housekeeperTab->add();
+        
+        // Tab for task details (hidden from menu)
+        $taskDetailTab = new Tab();
+        $taskDetailTab->active = 1;
+        $taskDetailTab->class_name = 'HousekeeperTaskDetail';
+        $taskDetailTab->name = array();
+        foreach (Language::getLanguages(true) as $lang) {
+            $taskDetailTab->name[$lang['id_lang']] = 'Task Detail';
+        }
+        $taskDetailTab->id_parent = -1; // Hidden from menu
+        $taskDetailTab->module = $this->name;
+        $taskDetailTab->add();
+
+        //sub-tab for Supervisor Inspection
+        $inspectionTab = new Tab();
+        $inspectionTab->active = 1;
+        $inspectionTab->class_name = 'SupervisorInspection';
+        $inspectionTab->name = array();
+        foreach (Language::getLanguages(true) as $lang) {
+            $inspectionTab->name[$lang['id_lang']] = 'Room Inspections';
+        }
+        $inspectionTab->id_parent = (int)Tab::getIdFromClassName('AdminHousekeepingManagement');
+        $inspectionTab->module = $this->name;
+        $inspectionTab->add();
+
         // Set the default controller shown when clicking the main tab
         Configuration::updateValue('PS_DEFAULT_ADMIN_HOUSEKEEPING_TAB', 'AdminSOPManagement');
 
@@ -312,9 +399,12 @@ class HousekeepingManagement extends Module
         // uninstall child tabs first
         $childTabIds = array(
             (int)Tab::getIdFromClassName('AdminSOPManagement'),
-            (int)Tab::getIdFromClassName('SupervisorTasks')
+            (int)Tab::getIdFromClassName('SupervisorTasks'),
+            (int)Tab::getIdFromClassName('SupervisorInspection'),
+            (int)Tab::getIdFromClassName('HousekeeperDashboard'),
+            (int)Tab::getIdFromClassName('HousekeeperTaskDetail')
         );
-        
+            
         foreach ($childTabIds as $id_tab) {
             if ($id_tab) {
                 $tab = new Tab($id_tab);

@@ -28,6 +28,113 @@
         #dateFilterBtn:hover {
             background: #f0f0f0;    
         }
+        
+        /* Action buttons styling */
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+        .btn-action {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 6px 8px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #495057;
+            transition: all 0.2s;
+        }
+        .btn-action:hover {
+            background: #e9ecef;
+            transform: translateY(-1px);
+        }
+        .view-btn:hover { color: #007bff; border-color: #007bff; }
+        .edit-btn:hover { color: #28a745; border-color: #28a745; }
+        .delete-btn:hover { color: #dc3545; border-color: #dc3545; }
+        
+        /* Enhanced SOP button styling */
+        .btn-sop-details {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            width: 18ch; 
+            min-width: 10ch;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            gap: 4px;
+        }
+        .btn-sop-details i {
+            flex: 0 0 auto;
+            margin-left: 0;
+            min-width: 16px;
+            text-align: center;
+        }
+        .btn-sop-details span {
+            flex: 1 1 auto;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .btn-sop-details:hover {
+            background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        /* Enhanced modal step styling */
+        #modalSopSteps {
+            margin: 0;
+            padding-left: 0;
+            list-style: none;
+            counter-reset: step-counter;
+        }
+        #modalSopSteps li {
+            counter-increment: step-counter;
+            margin-bottom: 16px;
+            padding: 16px;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            position: relative;
+            padding-left: 60px;
+            line-height: 1.5;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        #modalSopSteps li:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        #modalSopSteps li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 16px;
+            top: 16px;
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        #modalSopSteps li:nth-child(even) {
+            background: #f8f9fa;
+        }
     </style>
 
     <!-- Summary Cards -->
@@ -35,7 +142,7 @@
         <div class="card" style="flex: 1; background: #fff; padding: 20px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <div>
                 <div style="font-size: 14px; color: #666;">Cleaned Rooms</div>
-                <div style="font-size: 28px; font-weight: bold;">100</div>
+                <div style="font-size: 28px; font-weight: bold;">{if isset($summary.cleaned)}{$summary.cleaned}{else}0{/if}</div>
             </div>
             <i class="fas fa-check-circle" style="font-size: 32px; color: green; margin-left: 15px;"></i>
         </div>
@@ -43,7 +150,7 @@
         <div class="card" style="flex: 1; background: #fff; padding: 20px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <div>
                 <div style="font-size: 14px; color: #666;">Not Cleaned</div>
-                <div style="font-size: 28px; font-weight: bold;">10</div>
+                <div style="font-size: 28px; font-weight: bold;">{if isset($summary.not_cleaned)}{$summary.not_cleaned}{else}0{/if}</div>
             </div>
             <i class="fas fa-ban" style="font-size: 32px; color: orange; margin-left: 15px;"></i>
         </div>
@@ -51,7 +158,7 @@
         <div class="card" style="flex: 1; background: #fff; padding: 20px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <div>
                 <div style="font-size: 14px; color: #666;">To Be Inspected</div>
-                <div style="font-size: 28px; font-weight: bold;">100</div>
+                <div style="font-size: 28px; font-weight: bold;">{if isset($summary.to_be_inspected)}{$summary.to_be_inspected}{else}0{/if}</div>
             </div>
             <i class="fas fa-search" style="font-size: 32px; color: #007bff; margin-left: 15px;"></i>
         </div>
@@ -59,12 +166,11 @@
         <div class="card" style="flex: 1; background: #fff; padding: 20px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <div>
                 <div style="font-size: 14px; color: #666;">Failed Inspections</div>
-                <div style="font-size: 28px; font-weight: bold;">10</div>
+                <div style="font-size: 28px; font-weight: bold;">{if isset($summary.failed_inspections)}{$summary.failed_inspections}{else}0{/if}</div>
             </div>
             <i class="fas fa-times-circle" style="font-size: 32px; color: red; margin-left: 15px;"></i>
         </div>
     </div>
-
 
     <!-- Tabs and Filters -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -76,6 +182,11 @@
             <button class="btn" data-filter="To Be Inspected">To Be Inspected</button>
             <button class="btn" data-filter="Failed Inspection">Failed Inspection</button>
         </div>
+            {if !isset($is_housekeeper) || !$is_housekeeper}
+            <a href="{$link->getAdminLink('SupervisorInspection')|escape:'html':'UTF-8'}" class="btn" style="background: #E0F0FF; color: #007bff; font-weight: 500; margin-left: 22rem;">
+                <i class="fas fa-search"></i> Rooms to Inspect ({if isset($summary.to_be_inspected)}{$summary.to_be_inspected}{else}0{/if})
+            </a>
+            {/if}
         <div class="filters" style="display: flex; gap: 10px; align-items: center;">
             <select>
                 <option value="">Priority</option>
@@ -103,13 +214,17 @@
     <table>
         <thead>
             <tr>
-                <th style="width: 10%;">Room#</th>
-                <th style="width: 20%;">Assigned Staff</th>
-                <th style="width: 15%;">Room Floor</th>
-                <th style="width: 15%;">Due Date</th>
-                <th style="width: 15%;">Start Time</th>
-                <th style="width: 10%;">Priority</th>
-                <th style="width: 15%;">Task Status</th>
+                <th style="width: 8%;">Room#</th>
+                <th style="width: 16%;">Assigned Staff</th>
+                <th style="width: 8%;">Floor</th>
+                <th style="width: 10%;">Due Date</th>
+                <th style="width: 10%;">Start Time</th>
+                <th style="width: 8%;">Priority</th>
+                <th style="width: 10%;">Status</th>
+                <th style="width: 12%;">SOP</th>
+                {if !isset($is_housekeeper) || !$is_housekeeper}
+                    <th style="width: 10%;">Actions</th>
+                {/if}
             </tr>
         </thead>
         <tbody id="roomTableBody">
@@ -131,7 +246,13 @@
                     {/if}
                 </td>
                 <td>{$task.deadline|date_format:"%m/%d/%Y"}</td>
-                <td>Not Yet Started</td>
+                <td>
+                    {if isset($task.time_slot) && $task.time_slot}
+                        {$task.time_slot}
+                    {else}
+                        Not Set
+                    {/if}
+                </td>
                 <td>
                     {assign var=priorityColor value=""}
                     {assign var=priorityBg value=""}
@@ -169,12 +290,53 @@
                     {elseif $task.room_status == "To Be Inspected"}
                         {assign var=statusColor value="#007bff"}
                         {assign var=statusBg value="#E0F0FF"}
+                    {else}
+                        {assign var=statusColor value="#999"}
+                        {assign var=statusBg value="#F0F0F0"}
                     {/if}
 
                     <span style="color:{$statusColor}; background:{$statusBg}; font-weight:bold; border-radius:12px; padding:4px 8px; display:inline-block;">
-                        {$task.room_status}
+                        {if $task.room_status}{$task.room_status}{else}Unknown{/if}
                     </span>
                 </td>
+                
+                {* SOP Column - Always visible for all users *}
+                <td>
+                    {if isset($task.sop_title) && $task.sop_title}
+                        <button class="btn-sop-details" 
+                                data-sop-title="{if isset($task.sop_full_title)}{$task.sop_full_title|escape:'html':'UTF-8'}{else}{$task.sop_title|escape:'html':'UTF-8'}{/if}" 
+                                data-sop-steps='{if isset($task.sop_steps)}{$task.sop_steps|json_encode}{else}[]{/if}' 
+                                title="{if isset($task.sop_full_title)}{$task.sop_full_title|escape:'html':'UTF-8'}{else}{$task.sop_title|escape:'html':'UTF-8'}{/if}">
+                            <i class="fas fa-clipboard-list"></i>
+                            <span>{$task.sop_title|escape:'html':'UTF-8'}</span>
+                        </button>
+                    {else}
+                        <span style="color: #999; font-style: italic;">No SOP</span>
+                    {/if}
+                </td>
+                
+                {* Actions Column - Only visible for supervisors *}
+                {if !isset($is_housekeeper) || !$is_housekeeper}
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn-action view-btn" title="View" data-task-id="{$task.id_task}">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn-action edit-btn" title="Edit" data-task-id="{$task.id_task}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-action delete-btn" title="Delete" data-task-id="{$task.id_task}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        {if $task.room_status == "To Be Inspected"}
+                        <a href="{$link->getAdminLink('SupervisorInspection')|escape:'html':'UTF-8'}&inspect_task=1&id_task={$task.id_task|intval}" 
+                        class="btn-action" title="Inspect Room">
+                            <i class="fas fa-search"></i>
+                        </a>
+                        {/if}
+                    </div>
+                </td>
+                {/if}
             </tr>
         {/foreach}
         </tbody>
@@ -188,10 +350,39 @@
         <button class="btn">Next</button>
     </div>
 
-    <!-- Link -->
+    <!-- SOP Steps Modal - Always available -->
+    <div id="sopStepsModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4); align-items:center; justify-content:center; z-index:9999;">
+        <div style="background:#fff; border-radius:8px; max-width:600px; width:90%; margin:auto; padding:0; position:relative; max-height:80vh; overflow:hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+            {* Modal Header *}
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 24px; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 id="modalSopTitle" style="margin: 0; font-size: 18px; font-weight: 600;"></h3>
+                    <p style="margin: 4px 0 0 0; opacity: 0.9; font-size: 14px;">Standard Operating Procedure</p>
+                </div>
+                <button id="closeSopModal" style="background: rgba(255,255,255,0.2); border: none; color: white; font-size: 24px; cursor: pointer; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                    &times;
+                </button>
+            </div>
+            
+            {* Modal Body *}
+            <div style="padding: 24px; max-height: 60vh; overflow-y: auto;">
+                <div style="margin-bottom: 16px;">
+                    <div style="display: flex; align-items: center; margin-bottom: 16px; padding: 12px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid #007bff;">
+                        <i class="fas fa-info-circle" style="color: #007bff; margin-right: 8px; font-size: 16px;"></i>
+                        <span style="color: #495057; font-size: 14px; font-weight: 500;">Follow these steps in order to complete the task</span>
+                    </div>
+                    <ol id="modalSopSteps"></ol>
+                </div>
+            </div>
+            
+           
+        </div>
+    </div>
+
+    <!-- External dependencies -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    <!-- Script -->
     {literal}
     <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -210,29 +401,40 @@
 
         // Date input behavior
         function setDateBehavior(input) {
-            input.addEventListener('focus', () => input.type = 'date');
-            input.addEventListener('blur', () => { if (!input.value) input.type = 'text'; });
+            if (input) {
+                input.addEventListener('focus', () => input.type = 'date');
+                input.addEventListener('blur', () => { if (!input.value) input.type = 'text'; });
+            }
         }
         setDateBehavior(from);
         setDateBehavior(to);
 
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-        });
-        document.addEventListener('click', () => dropdown.style.display = 'none');
+        // Date filter dropdown
+        if (btn && dropdown) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            });
+            document.addEventListener('click', () => dropdown.style.display = 'none');
+        }
 
         // Get filtered rows
         function getFilteredRows() {
             const statusFilter = document.querySelector('.tabs .btn.active')?.getAttribute('data-filter') || 'all';
-            const priorityFilter = prioritySelect.value;
-            const fromDate = from.value ? new Date(from.value) : null;
-            const toDate = to.value ? new Date(to.value) : null;
+            const priorityFilter = prioritySelect ? prioritySelect.value : '';
+            const fromDate = from && from.value ? new Date(from.value) : null;
+            const toDate = to && to.value ? new Date(to.value) : null;
 
             return Array.from(tableBody.querySelectorAll('tr')).filter(row => {
-                const status = row.querySelector('td:nth-child(7)').innerText.trim();
-                const priority = row.querySelector('td:nth-child(6)').innerText.trim();
-                const deadlineText = row.querySelector('td:nth-child(4)').innerText.trim();
+                const statusCell = row.querySelector('td:nth-child(7)');
+                const priorityCell = row.querySelector('td:nth-child(6)');
+                const deadlineCell = row.querySelector('td:nth-child(4)');
+                
+                if (!statusCell || !priorityCell || !deadlineCell) return false;
+                
+                const status = statusCell.innerText.trim();
+                const priority = priorityCell.innerText.trim();
+                const deadlineText = deadlineCell.innerText.trim();
                 const deadline = deadlineText ? new Date(deadlineText) : null;
 
                 let show = true;
@@ -262,7 +464,9 @@
 
         // Render pagination buttons dynamically
         function renderPagination(totalPages) {
-            paginationContainer.innerHTML = ''; // Clear old buttons
+            if (!paginationContainer) return;
+            
+            paginationContainer.innerHTML = '';
 
             const prevBtn = document.createElement('button');
             prevBtn.className = 'btn';
@@ -296,7 +500,122 @@
             renderTable();
         }));
 
-        [prioritySelect, from, to].forEach(el => el.addEventListener('change', () => { currentPage = 1; renderTable(); }));
+        if (prioritySelect) {
+            prioritySelect.addEventListener('change', () => { currentPage = 1; renderTable(); });
+        }
+        [from, to].forEach(el => {
+            if (el) {
+                el.addEventListener('change', () => { currentPage = 1; renderTable(); });
+            }
+        });
+
+        // Enhanced SOP Modal functionality
+        const sopModal = document.getElementById('sopStepsModal');
+        if (sopModal) {
+            document.querySelectorAll('.btn-sop-details').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var title = btn.getAttribute('data-sop-title');
+                    var stepsJson = btn.getAttribute('data-sop-steps');
+                    var steps = [];
+                    
+                    try {
+                        steps = JSON.parse(stepsJson || '[]');
+                    } catch(e) {
+                        console.error('Error parsing SOP steps:', e);
+                        steps = [];
+                    }
+                    
+                    document.getElementById('modalSopTitle').innerText = title || 'SOP Details';
+                    var ol = document.getElementById('modalSopSteps');
+                    ol.innerHTML = '';
+                    
+                    if (steps.length > 0) {
+                        steps.forEach(function(step, index) {
+                            var li = document.createElement('li');
+                            li.innerHTML = '<strong>Step ' + (index + 1) + ':</strong> ' + (step.step_description || step);
+                            ol.appendChild(li);
+                        });
+                    } else {
+                        ol.innerHTML = '<li style="text-align: center; color: #999; font-style: italic; border: 2px dashed #dee2e6;">No steps available for this SOP</li>';
+                    }
+                    
+                    sopModal.style.display = 'flex';
+                });
+            });
+            
+            // Close modal events
+            document.getElementById('closeSopModal').onclick = function() {
+                sopModal.style.display = 'none';
+            };
+            
+            sopModal.onclick = function(e) {
+                if (e.target === this) {
+                    this.style.display = 'none';
+                }
+            };
+            
+            // ESC key to close modal
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && sopModal.style.display === 'flex') {
+                    sopModal.style.display = 'none';
+                }
+            });
+        }
+
+        // Action buttons functionality (for supervisors)
+        document.querySelectorAll('.view-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const taskId = this.getAttribute('data-task-id');
+                window.location.href = '{/literal}{$link->getAdminLink('SupervisorInspection')|escape:'javascript'}{literal}&viewtask=1&id_task=' + taskId;
+            });
+        });
+
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const taskId = this.getAttribute('data-task-id');
+                window.location.href = '{/literal}{$link->getAdminLink('SupervisorTasks')|escape:'javascript'}{literal}&edit_task=1&id_task=' + taskId;
+            });
+        });
+
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const taskId = this.getAttribute('data-task-id');
+                
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: "You won't be able to revert this!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, delete it!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Send AJAX request to delete
+                        fetch('{/literal}{$link->getAdminLink('SupervisorTasks')|escape:'javascript'}{literal}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: 'ajax=1&action=deleteTask&id_task=' + taskId + '&token={/literal}{$token|escape:'javascript'}{literal}'
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire('Deleted!', data.message, 'success').then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire('Error!', data.message, 'error');
+                            }
+                        })
+                        .catch(error => {
+                            Swal.fire('Error!', 'Failed to delete task', 'error');
+                        });
+                    }
+                });
+            });
+        });
 
         // Initial render
         renderTable();

@@ -1,0 +1,120 @@
+.hk-task-wrapper {
+    width: 90%;
+    max-width: 100vw;
+    margin: 20px auto;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    font-family: Arial,Helvetica,sans-serif;
+    color: #111827;
+}
+.hk-task-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;
+margin-right:20px;margin-left:20px;margin-top:15px;}
+.hk-task-room{display:flex;flex-direction:column;gap:8px;flex:1}
+.hk-room-line{font-weight:700;font-size:18px;color:#111827}
+.hk-room-number{margin-right:8px}
+.hk-sep{margin:0 8px;color:#9ca3af}
+.hk-room-type{color:#374151}
+.hk-task-details{display:flex;flex-direction:column;gap:8px}
+.hk-detail-row{display:flex;gap:16px;flex-wrap:wrap}
+.hk-detail-item{display:flex;align-items:center;gap:4px;color:#4b5563;font-size:14px}
+.hk-priority{font-weight:600;padding:2px 6px;border-radius:4px;font-size:12px}
+.hk-priority.high{background:#fee2e2;color:#991b1b}
+.hk-priority.medium{background:#fef3c7;color:#92400e}
+.hk-priority.low{background:#dcfce7;color:#166534}
+.hk-dates{display:flex;gap:16px;color:#4b5563;font-size:14px;flex-wrap:wrap}
+.hk-date-item .hk-label{color:#6b7280;margin-right:4px}
+.hk-task-meta{display:flex;flex-direction:column;gap:8px;align-items:flex-end;min-width:140px}
+.hk-status{display:inline-block;padding:4px 10px;border-radius:9999px;font-size:12px;font-weight:700;text-align:center}
+.hk-status-progress{background:#e0f2fe;color:#075985;border:1px solid #bae6fd}
+.hk-status-done{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}
+.hk-status-not-started{background:#f3f4f6;color:#374151;border:1px solid #d1d5db}
+.hk-progress{font-weight:700;color:#111827;text-align:center}
+.hk-task-note{margin:12px 0 8px;border-left:3px solid #e5e7eb;padding:8px 10px;background:#f9fafb;border-radius:4px}
+.hk-note-text{margin:0;color:#374151}
+.hk-checklist{margin-top:10px}
+.hk-empty{padding:16px;text-align:center;color:#6b7280;background:#f9fafb;border:1px dashed #e5e7eb;border-radius:6px}
+.hk-checklist-item{display:flex;justify-content:space-between;align-items:center;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;margin-bottom:10px;background:#fff;transition:border-color 0.2s ease}
+.hk-checklist-item:hover{border-color:#d1d5db}
+.hk-item-label{flex:1;color:#111827;font-weight:500}
+.hk-toggles{display:flex;gap:8px}
+.hk-toggle{position:relative}
+.hk-toggle input{position:absolute;opacity:0;pointer-events:none}
+.hk-toggle .hk-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid #d1d5db;border-radius:20px;padding:6px 10px;font-weight:700;font-size:12px;background:#fff;color:#374151;cursor:pointer;outline:none;transition:all 0.2s ease}
+.hk-toggle .hk-chip:hover{transform:translateY(-1px);box-shadow:0 2px 4px rgba(0,0,0,0.1)}
+.hk-toggle .hk-chip:focus{box-shadow:0 0 0 3px rgba(59,130,246,.45)}
+.hk-toggle-pass .hk-chip{border-color:#86efac;color:#166534}
+.hk-toggle-pass input:checked + .hk-chip{background:#22c55e;color:#052e16;border-color:#16a34a}
+.hk-toggle-fail .hk-chip{border-color:#fed7aa;color:#9a3412}
+.hk-toggle-fail input:checked + .hk-chip{background:#fb923c;color:#431407;border-color:#f97316}
+.hk-actions{margin-top:14px;display:flex;justify-content:flex-end}
+.hk-btn{border:1px solid transparent;border-radius:6px;padding:10px 14px;font-weight:700;cursor:pointer;transition:all 0.2s ease}
+.hk-btn:focus{outline:none;box-shadow:0 0 0 3px rgba(59,130,246,.45)}
+.hk-btn:hover{transform:translateY(-1px)}
+.hk-btn-primary{background: #007bff; color: white;margin-right:20px;}
+.hk-btn-primary:hover{background:#0b1220}
+.hk-btn-primary:disabled{background:#6b7280;cursor:not-allowed;transform:none}
+.hk-toast{position:fixed;bottom:16px;right:16px;min-width:220px;max-width:320px;background:#111827;color:#fff;padding:10px 12px;border-radius:8px;opacity:0;transform:translateY(8px);transition:opacity .25s ease, transform .25s ease;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
+.hk-toast.show{opacity:1;transform:translateY(0)}
+/* Back button style */
+.hk-back-btn {
+    display: inline-block;
+    padding: 8px 16px;
+    margin-bottom: 16px;
+    background-color: #f3f4f6;
+    color: #111827;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.hk-back-btn:hover {
+    background-color: #e5e7eb;
+    text-decoration: none;
+}
+.hk-checklist-columns {
+    display: flex;
+    gap: 24px;
+    /* make both columns share a single scroll when there are more than 5 or 6 items per column */
+    max-height: 390px; /* ~7 items x 60px/item*/
+    overflow-y: auto;
+    margin-top: 20px;
+    margin-bottom: 25px;
+    margin-right: 20px;
+    margin-left: 20px;
+}
+.hk-checklist-col {
+    flex: 1 1 0;
+    min-width: 0;
+}
+@media (max-width: 700px) {
+    .hk-checklist-columns {
+        flex-direction: column;
+        gap: 0;
+        max-height: none;
+        overflow: visible;
+    }
+    .hk-checklist-col {
+        width: 100%;
+    }
+}
+
+@media (max-width: 768px){
+	.hk-task-header{flex-direction:column;align-items:flex-start;gap:16px}
+	.hk-task-meta{align-items:flex-start}
+	.hk-detail-row{flex-direction:column;gap:8px}
+	.hk-dates{flex-direction:column;gap:8px}
+	.hk-checklist-item{flex-direction:column;align-items:flex-start;gap:8px}
+	.hk-toggles{width:100%;justify-content:space-between}
+	.hk-actions{justify-content:stretch}
+	.hk-btn{width:100%}
+}
+
+@media (max-width: 480px){
+	.hk-task-wrapper{padding:12px;margin:10px}
+	.hk-room-line{font-size:16px}
+	.hk-task-meta{min-width:auto;width:100%}
+}
