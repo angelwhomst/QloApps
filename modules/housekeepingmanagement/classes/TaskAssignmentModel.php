@@ -100,6 +100,7 @@ class TaskAssignmentModel extends ObjectModel
         $sql->leftJoin('housekeeping_sop', 's', 't.id_sop = s.id_sop');
         $sql->leftJoin('product_lang', 'p', 'r.id_product = p.id_product AND p.id_lang = '.(int)Context::getContext()->language->id);
         $sql->where('t.id_employee = '.(int)$id_employee);
+        $sql->where('t.deleted = 0');
         
         // Apply filters
         if (isset($filters['search']) && $filters['search']) {

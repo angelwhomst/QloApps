@@ -313,6 +313,7 @@ class SupervisorInspectionController extends ModuleAdminController
                 $task->id_room_status = 2; // Cleaned
             } else {
                 $task->id_room_status = 1; // Failed Inspection
+                $task->status = TaskAssignmentModel::STATUS_TO_DO; // reassign to same employee as to_do
             }
             $task->date_upd = date('Y-m-d H:i:s');
             if (!$task->update()) {

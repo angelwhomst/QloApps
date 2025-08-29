@@ -62,15 +62,29 @@
             border-radius: 6px;
             font-size: 12px;
             cursor: pointer;
-            max-width: 140px;
+            width: 18ch; 
+            min-width: 10ch;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
             transition: all 0.2s;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            gap: 4px;
+        }
+        .btn-sop-details i {
+            flex: 0 0 auto;
+            margin-left: 0;
+            min-width: 16px;
+            text-align: center;
+        }
+        .btn-sop-details span {
+            flex: 1 1 auto;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         .btn-sop-details:hover {
             background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
@@ -293,8 +307,8 @@
                                 data-sop-title="{if isset($task.sop_full_title)}{$task.sop_full_title|escape:'html':'UTF-8'}{else}{$task.sop_title|escape:'html':'UTF-8'}{/if}" 
                                 data-sop-steps='{if isset($task.sop_steps)}{$task.sop_steps|json_encode}{else}[]{/if}' 
                                 title="{if isset($task.sop_full_title)}{$task.sop_full_title|escape:'html':'UTF-8'}{else}{$task.sop_title|escape:'html':'UTF-8'}{/if}">
-                            <i class="fas fa-clipboard-list" style="margin-right: 4px;"></i>
-                            {$task.sop_title|escape:'html':'UTF-8'}
+                            <i class="fas fa-clipboard-list"></i>
+                            <span>{$task.sop_title|escape:'html':'UTF-8'}</span>
                         </button>
                     {else}
                         <span style="color: #999; font-style: italic;">No SOP</span>
